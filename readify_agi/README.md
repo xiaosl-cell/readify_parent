@@ -12,7 +12,7 @@
 
 ## ✨ 功能特点
 
-Readify AGI 是一个强大的智能代理协调框架，专注于管理和编排多个专业 Agent 协同工作，以解决复杂任务。
+Readify AGI 是 Readify 智能读书助手的 AGI 底座，主要有如下能力:
 
 - 🧠 **智能任务分发** - 基于用户查询自动选择最合适的专业 Agent
 - 🤝 **多Agent协作** - 将复杂任务分解为子任务，由不同专业 Agent 协同完成
@@ -25,7 +25,8 @@ Readify AGI 是一个强大的智能代理协调框架，专注于管理和编�
 ## 🛠️ 技术栈
 
 - **后端框架**: FastAPI, Python 3.9
-- **大语言模型**: OpenAI, LangChain
+- **大语言模型**: OpenAI, Qwen, Deepseek...
+- **Agent框架**: LangChain
 - **数据库**: SQLAlchemy, MySQL
 - **向量数据库**: ChromaDB
 - **文档处理**: LlamaParse, PyPDF
