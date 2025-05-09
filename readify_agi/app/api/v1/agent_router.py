@@ -1,5 +1,6 @@
 import asyncio
 import json
+import urllib.parse
 from typing import Dict, Any
 
 from fastapi import APIRouter, Query, Depends
@@ -32,7 +33,7 @@ async def get_coordinator_service(
     Returns:
         CoordinatorAgentService: 协调Agent服务实例
     """
-    context_dict = json.loads(context)
+    context_dict = json.loads(urllib.parse.unquote(context))
     coordinator = CoordinatorAgentService(project_id=project_id, vendor=vendor, task_type=task_type, context=context_dict)
     
     # 注册专业智能体
