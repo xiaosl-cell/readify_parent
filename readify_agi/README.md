@@ -1,92 +1,162 @@
-# 协调Agent服务
+# 📚 Readify AGI
 
-## 项目简介
+<div align="center">
+  <h3>Readify智能读书助手的AGI底座</h3>
+  <p>基于多智能体协作的复杂任务解决方案</p>
+  
+  ![Python](https://img.shields.io/badge/Python-3.9-3776AB?style=for-the-badge&logo=python&logoColor=white)
+  ![FastAPI](https://img.shields.io/badge/FastAPI-0.100.0+-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+  ![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white)
+  ![LangChain](https://img.shields.io/badge/LangChain-2C2D72?style=for-the-badge&logo=chainlink&logoColor=white)
+</div>
 
-协调Agent服务是一个能够管理和协调多个专业Agent协作完成复杂任务的框架。通过将不同的专业Agent注册到协调器中，可以根据任务性质自动选择或组合合适的Agent来处理用户请求。
+## ✨ 功能特点
 
-## 主要特性
+Readify AGI 是一个强大的智能代理协调框架，专注于管理和编排多个专业 Agent 协同工作，以解决复杂任务。
 
-- **智能任务分发**: 根据用户查询自动选择合适的专业Agent
-- **多Agent协作**: 支持将复杂任务分解为子任务，并交由不同的Agent协作完成
-- **工作流管理**: 支持定义和执行多Agent协作的工作流
-- **流式输出**: 支持实时显示思考过程和工具执行结果
-- **会话记忆**: 保存对话历史和思考过程，支持长期记忆
+- 🧠 **智能任务分发** - 基于用户查询自动选择最合适的专业 Agent
+- 🤝 **多Agent协作** - 将复杂任务分解为子任务，由不同专业 Agent 协同完成
+- 🔄 **工作流管理** - 定义和执行复杂的多 Agent 协作工作流
+- 📝 **流式输出** - 实时展示思考过程和工具执行结果
+- 💬 **会话记忆** - 保存对话历史和思考过程，支持上下文理解和长期记忆
+- 📄 **文档处理** - 支持文档解析、向量化和语义搜索
+- ✏️ **文本修复** - 智能识别和修复文本问题
 
-## 安装依赖
+## 🛠️ 技术栈
+
+- **后端框架**: FastAPI, Python 3.9
+- **大语言模型**: OpenAI, LangChain
+- **数据库**: SQLAlchemy, MySQL
+- **向量数据库**: ChromaDB
+- **文档处理**: LlamaParse, PyPDF
+- **异步处理**: Uvicorn, ASGI
+
+## 📋 前提条件
+
+- Python 3.9 或更高版本
+- Conda 或 pip 包管理工具
+
+## 🚀 快速开始
+
+### 环境配置
+
+1. 使用 Conda 创建环境：
+
+```bash
+# 创建并激活环境
+conda env create -f environment.yml
+conda activate readify_agi
+```
+
+2. 或直接使用 pip 安装依赖：
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## 使用方法
+### 启动服务
 
-### 1. 创建专业Agent
+```bash
+python main.py
+```
 
-首先，继承基础的`AgentService`类来创建专业Agent:
+服务默认在 `http://localhost:8090` 启动
+
+## 🧩 项目结构
+
+```
+readify_agi/
+├── app/                    # 应用核心代码
+│   ├── api/                # API 接口定义
+│   ├── core/               # 核心功能模块
+│   ├── models/             # 数据模型
+│   ├── repositories/       # 数据访问层
+│   ├── services/           # 业务逻辑服务
+│   ├── static/             # 静态资源
+│   └── utils/              # 工具函数
+├── prompt/                 # 提示词模板
+├── static/                 # 全局静态资源
+├── test/                   # 测试代码
+├── main.py                 # 应用入口
+├── environment.yml         # Conda 环境配置
+└── README.md               # 项目文档
+```
+
+## 💻 开发指南
+
+### 创建专业 Agent
+
+继承基础的 `AgentService` 类来创建专业 Agent：
 
 ```python
 from app.services.agent_service import AgentService
 
-class CodeAgentService(AgentService):
-    """代码专业Agent"""
+class CustomAgentService(AgentService):
+    """自定义专业 Agent"""
     
     def __init__(self, db, project_id, model_name="gpt-4o", temperature=0.5):
         super().__init__(db, project_id, model_name, temperature)
-        self.description = "专门用于代码分析、生成和优化的智能体"
+        self.description = "专门处理特定领域任务的智能体"
         # 设置专用的提示模板
         self.prompt_template = "..."
 ```
 
-### 2. 创建并配置协调Agent
-
-使用工厂方法创建协调Agent并注册专业Agent:
+### 配置并使用协调 Agent
 
 ```python
 from app.services.coordinator_agent_service import CoordinatorAgentService
 
-# 创建协调Agent
+# 创建协调 Agent
+coordinator = CoordinatorAgentService(db, project_id)
 
-```
-
-### 3. 使用协调Agent处理用户查询
-
-```python
-# 定义回调函数处理输出
-async def handle_response(response):
-    # 处理Agent的响应...
-    pass
+# 注册专业 Agent
+coordinator.register_agent("custom", CustomAgentService(db, project_id))
 
 # 处理用户查询
+async def handle_response(response):
+    print(response)
+
 await coordinator.generate_stream_response(
-    query="帮我分析这段代码并优化性能",
+    query="执行特定任务的指令",
     callback=handle_response,
     db=db,
     project_id=project_id
 )
 ```
 
-## 示例
+## 🤖 现有专业 Agent
 
-参考`examples/coordinator_agent_example.py`查看完整示例。
+- **Agent Service**: 基础智能体服务
+- **Coordinator Agent**: 智能体调度器
+- **Note Agent**: 笔记生成智能体
+- **Ask Agent**: 知识问答智能体
 
-## 定制协调器
+## 🔧 提供能力
 
-你可以通过以下方式定制协调器的行为:
+- **智能体协调**: 支持多智能体协作，动态分配和管理任务
+- **文档处理**: 支持多种格式文档的解析、向量化和语义理解
+- **知识问答**: 基于文档内容的智能问答和知识推理
+- **笔记管理**: 自动生成和组织文档笔记
+- **实时反馈**: 提供流式输出，实时展示智能体思考过程
 
-1. 创建自定义的提示模板文件(`prompt/coordinator.prompt`)
-2. 添加自定义工具到协调器
-3. 实现特定领域的专业Agent
-4. 调整协调策略和工作流设计
+## 📡 API 接口
 
-## 工具说明
+访问 `http://localhost:8090/docs` 查看完整的 API 文档
 
-协调Agent包含以下核心工具:
+## 🤝 贡献指南
 
-- `list_available_agents`: 列出所有可用的专业Agent
-- `delegate_task`: 将任务委派给指定的专业Agent
-- `execute_multi_agent_workflow`: 执行预定义的多Agent工作流
-- `get_task_status`: 获取任务执行状态
+1. Fork 本项目
+2. 创建您的特性分支 (`git checkout -b feature/amazing-feature`)
+3. 提交您的更改 (`git commit -m 'Add some amazing feature'`)
+4. 推送到分支 (`git push origin feature/amazing-feature`)
+5. 打开一个 Pull Request
 
-## 许可证
+## 📄 许可证
 
-MIT 
+[MIT License](LICENSE)
+
+---
+
+<div align="center">
+  <p>Made with ❤️ by Readify AGI</p>
+</div> 
