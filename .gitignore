@@ -122,3 +122,5 @@ config.local.json
 *.pem
 *.cert
 *.p12
+readify_server/.mvn/wrapper/maven-wrapper.properties
+readify_server/src/main/resources/application.yml

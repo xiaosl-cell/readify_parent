@@ -41,6 +41,8 @@
           @close="handleNoteClose"
           @save="handleNoteSave"
           @send-input="handleNoteInput"
+          @refresh-mindmap="refreshMindMapData"
+          ref="noteContainerRef"
         />
 
         <!-- 右侧笔记本栏 -->
@@ -329,34 +331,78 @@ const handleAddSource = () => {
   uploadDialogVisible.value = true
 }
 
+// 组件引用
+const mindMapDialogRef = ref<InstanceType<typeof MindMapDialog> | null>(null)
+const noteContainerRef = ref<InstanceType<typeof NoteContainer> | null>(null)
+
 // 处理WebSocket事件
 const handleWebSocketMessage = (message: any) => {
-  // 按消息类型处理
-  if (message.type === 'projectFiles') {
-    sources.value = message.data.map((file: FileVO) => ({
-      ...file,
-      selected: file.vectorized,
-      vectorized: file.vectorized,
-      loading: file.vectorized ? false : true
-    }))
-  } else if (['agentMessage', 'agentComplete'].includes(message.type)) {
-    // 转发AI代理消息到Chat组件
-    chatRef.value?.handleWebSocketMessage(message)
-  } else if (['messageSent', 'sendMessageResponse'].includes(message.type)) {
-    // 处理发送消息的确认回执
-    if (chatRef.value) {
-      // 转换为一个系统消息通知Chat组件
-      chatRef.value.handleWebSocketMessage({
-        type: 'agentMessage',
-        data: JSON.stringify({
-          type: 'system',
-          content: `消息已通过WebSocket发送，服务器回应: ${message.type}`
+  // 解析消息类型
+  if (!message || !message.type) {
+    console.warn('收到无效WebSocket消息:', message)
+    return
+  }
+  
+  console.log('收到WebSocket消息:', message.type)
+  
+  // 处理不同类型的WebSocket消息
+  switch (message.type) {
+    case 'projectFiles':
+      // 处理项目文件列表更新
+      sources.value = message.data.map((file: FileVO) => ({
+        ...file,
+        selected: file.vectorized,
+        vectorized: file.vectorized,
+        loading: file.vectorized ? false : true
+      }))
+      break
+      
+    case 'agentMessage':
+      // 处理Agent发送的消息片段
+      if (isNoteVisible.value) {
+        // 如果当前在笔记视图，处理思维导图相关消息
+        if (noteContainerRef.value && typeof noteContainerRef.value.handleAgentMessage === 'function') {
+          noteContainerRef.value.handleAgentMessage(message.data)
+        }
+      } else {
+        // 转发给聊天组件
+        chatRef.value?.handleWebSocketMessage?.(message)
+      }
+      break
+      
+    case 'agentComplete':
+      // 处理Agent响应完成消息
+      if (isNoteVisible.value && message.data?.type === '[DONE]') {
+        // 如果在笔记视图并且是完成消息
+        console.log('思维导图更新完成通知')
+        
+        // 不再在此处直接调用刷新方法，由NoteContainer组件通过事件触发
+        // 思维导图更新由NoteContainer组件接收到[DONE]消息时触发refresh-mindmap事件完成
+      } else {
+        // 转发给聊天组件
+        chatRef.value?.handleWebSocketMessage?.(message)
+      }
+      break
+      
+    case 'messageSent':
+    case 'sendMessageResponse':
+      // 处理发送消息的确认回执
+      if (!isNoteVisible.value && chatRef.value) {
+        // 转换为一个系统消息通知Chat组件
+        chatRef.value.handleWebSocketMessage({
+          type: 'agentMessage',
+          data: JSON.stringify({
+            type: 'system',
+            content: `消息已通过WebSocket发送，服务器回应: ${message.type}`
+          })
         })
-      })
-    }
-  } else {
-    // 其他未知类型消息，直接转发给Chat组件
-    chatRef.value?.handleWebSocketMessage(message)
+      }
+      break
+    
+    default:
+      // 其他消息转发给聊天组件
+      chatRef.value?.handleWebSocketMessage?.(message)
+      break
   }
 }
 
@@ -496,9 +542,6 @@ const getFileExtension = (filename: string) => {
   const ext = filename.split('.').pop()
   return ext ? ext.toUpperCase() : ''
 }
-
-// 思维导图对话框引用
-const mindMapDialogRef = ref<InstanceType<typeof MindMapDialog> | null>(null)
 
 // 处理选择笔记
 const handleSelectNote = (note: MindMapVO) => {
@@ -675,11 +718,80 @@ const handleNoteInput = (input: string, mode: string, vendor: string) => {
   // 在这里处理笔记输入
   console.log('收到笔记输入:', input, '模式:', mode, '模型:', vendor)
   
-  // 可以调用WebSocket发送消息，与聊天共用逻辑
-  if (actualProjectId.value) {
-    // 如果需要，可以在这里传递模式和模型信息
-    handleSendChatMessage(input, actualProjectId.value)
+  // 检查WebSocket状态
+  if (!wsManager.value || !wsManager.value.ws || wsManager.value.ws.readyState !== WebSocket.OPEN) {
+    ElMessage.error('聊天服务未连接，无法发送消息')
+    return
   }
+  
+  try {
+    // 构建特定于思维导图的消息，添加mindMapId和note类型
+    const messageData = {
+      type: 'sendMessage',
+      data: {
+        query: input,
+        projectId: actualProjectId.value.toString(),
+        taskType: 'note', // 对note设置为note类型
+        vendor: vendor,
+        mindMapId: currentNote.value.id.toString() // 添加思维导图ID
+      },
+      timestamp: Date.now()
+    }
+    
+    // 显示思考过程抽屉（如果需要）
+    // TODO: 如果需要显示思考过程抽屉，在这里添加抽屉显示逻辑
+    
+    // 发送消息
+    const result = wsManager.value.sendMessage(messageData)
+    
+    if (!result) {
+      throw new Error('WebSocket发送消息失败')
+    }
+  } catch (error) {
+    console.error('[WebSocket发送] - 笔记消息发送失败:', error)
+    ElMessage.error('发送消息失败，请稍后再试')
+  }
+}
+
+// 刷新思维导图数据
+const refreshMindMapData = async () => {
+  if (!currentNote.value.id) return
+  
+  try {
+    const loadingInstance = ElLoading.service({
+      text: '更新思维导图...',
+      background: 'rgba(255, 255, 255, 0.8)'
+    })
+    
+    // 获取最新的思维导图数据
+    const res = await getFullMindMap(currentNote.value.id)
+    
+    loadingInstance.close()
+    
+    if (res.data) {
+      // 将树形结构转换为Markdown
+      const markdown = buildMarkdownFromTree(res.data)
+      
+      // 更新当前笔记内容
+      currentNote.value.content = markdown
+      
+      // 成功提示
+      ElMessage.success('思维导图已更新')
+    } else {
+      ElMessage.error('获取思维导图失败: ' + (res.message || '未知错误'))
+    }
+  } catch (error) {
+    console.error('Failed to refresh mind map:', error)
+    ElMessage.error('更新思维导图失败，请重试')
+  }
+}
+
+// 从树形结构构建Markdown
+const buildMarkdownFromTree = (tree: MindMapNodeTreeVO): string => {
+  if (!tree) return ''
+  
+  // 从根节点开始构建
+  return buildMarkdownFromNode(tree, 1)
 }
 
 // 组件挂载时初始化
