@@ -12,15 +12,15 @@
 
 ## 📋 项目概述
 
-Readify是一个智能阅读笔记助手系统，通过AI技术帮助用户轻松整理知识并生成直观的思维导图。项目采用微服务架构，由三个核心组件组成：
+Readify是一个智能阅读笔记助手系统，通过AI技术帮助用户轻松整理知识并生成直观的思维导图。项目由三个部分组成：
 
 - **Readify Frontend** - 基于Vue 3的用户界面
 - **Readify Server** - 基于Spring Boot的后端服务
-- **Readify AGI** - 基于Python FastAPI的智能代理底座
+- **Readify AGI** - 基于Python FastAPI的智能服务底座
 
 ## ✨ 核心功能
-
-- 📝 **智能笔记生成** - 自动分析文档内容，生成结构化笔记
+- 📝 **智能问答** - 自动分析文档内容，结合搜索引擎回答用户问题
+- 📝 **智能笔记生成** - 自动分析文档内容，生成结，支持多层级展示构化笔记
 - 🧠 **思维导图可视化** - 直观展示知识结构和关系
 - 🤝 **多Agent协作** - 基于多智能体协作的复杂任务解决方案
 - 💬 **多种AI模型支持** - 支持OpenAI、Qwen、DeepSeek等多种大语言模型
@@ -38,18 +38,18 @@ readify_parent/
 
 ### Readify Frontend
 
-- **技术栈**: Vue 3, TypeScript, Element Plus, Vite
-- **功能**: 用户界面, 文档上传, 交互式思维导图, 笔记管理
+- **技术栈**: Vue 3, TypeScript, Element Plus, Vite, markmap.js
+- **功能**: 用户界面
 
 ### Readify Server
 
 - **技术栈**: Java 17, Spring Boot 3.2.2, MyBatis-Plus, MySQL
-- **功能**: 用户认证, 项目管理, 文件处理, WebSocket通信
+- **功能**: 业务端代码实现
 
 ### Readify AGI
 
 - **技术栈**: Python 3.9, FastAPI, LangChain, OpenAI
-- **功能**: 多智能体协调, 文档分析, 知识提取, 思维导图生成
+- **功能**: AI服务底座，多智能体协调, 文档分析, 知识提取, 思维导图生成
 
 ## 🚀 快速开始
 
@@ -64,7 +64,7 @@ readify_parent/
 
 1. **克隆仓库**
 ```bash
-git clone https://github.com/yourusername/readify.git
+git clone https://github.com/xiaosl-cell/readify_parent.git
 cd readify
 ```
 
