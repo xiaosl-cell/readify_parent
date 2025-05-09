@@ -86,14 +86,16 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, provide, nextTick } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter, useRoute } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElLoading } from 'element-plus'
 import { getAuthHeader, getToken } from '@/utils/auth'
 import { getProjectById } from '@/api/project'
 import { getProjectFiles } from '@/api/file'
 import { sendChatMessage, getProjectConversations } from '@/api/chat'
 import { getMindMapById, updateMindMap } from '@/api/mindmap'
+import { getFullMindMap } from '@/api/mindmap'
 import type { FileVO } from '@/types/file'
 import type { MindMapVO } from '@/types/mindmap'
+import type { MindMapNodeTreeVO } from '@/types/mindmap'
 
 // 导入组件
 import Navbar from '@/components/Navbar.vue'
@@ -508,24 +510,27 @@ const handleSelectNote = (note: MindMapVO) => {
 const openNote = async (note: MindMapVO) => {
   try {
     // 显示加载状态
-    const loadingInstance = ElMessage.loading({
-      message: '正在加载笔记内容...',
-      duration: 0
+    const loadingInstance = ElLoading.service({
+      text: '正在加载笔记内容...',
+      background: 'rgba(255, 255, 255, 0.8)'
     })
     
-    // 获取笔记详情
-    const res = await getMindMapById(note.id)
+    // 获取完整思维导图结构
+    const res = await getFullMindMap(note.id)
     
     // 关闭加载提示
     loadingInstance.close()
     
     if (res.data) {
+      // 将思维导图节点树转换为Markdown格式
+      const markdown = convertNodeTreeToMarkdown(res.data)
+      
       // 设置当前笔记内容
       currentNote.value = {
         id: note.id,
         title: note.title,
-        // 使用API返回的description作为笔记内容
-        content: res.data.description || EXAMPLE_MARKDOWN
+        // 使用转换后的Markdown作为笔记内容
+        content: markdown
       }
       // 显示笔记容器
       isNoteVisible.value = true
@@ -546,6 +551,42 @@ const openNote = async (note: MindMapVO) => {
   }
 }
 
+// 将思维导图节点树转换为Markdown格式
+const convertNodeTreeToMarkdown = (nodeTree: MindMapNodeTreeVO): string => {
+  // 构建Markdown头部
+  let markdown = `---
+title: ${currentNote.value.title || '思维导图笔记'}
+markmap:
+  colorFreezeLevel: 2
+---\n\n`
+  
+  // 如果有根节点，递归构建Markdown内容
+  if (nodeTree) {
+    markdown += buildMarkdownFromNode(nodeTree, 1) // 从一级标题开始
+  }
+  
+  return markdown
+}
+
+// 递归构建Markdown内容
+const buildMarkdownFromNode = (node: MindMapNodeTreeVO, level: number): string => {
+  // 标题层级，最多支持6级
+  const headerLevel = Math.min(level, 6)
+  const prefix = '#'.repeat(headerLevel)
+  
+  // 当前节点的Markdown文本
+  let markdown = `${prefix} ${node.content || '未命名节点'}\n\n`
+  
+  // 递归处理子节点
+  if (node.children && node.children.length > 0) {
+    for (const child of node.children) {
+      markdown += buildMarkdownFromNode(child, level + 1)
+    }
+  }
+  
+  return markdown
+}
+
 // 处理笔记关闭
 const handleNoteClose = () => {
   isNoteVisible.value = false
@@ -557,9 +598,9 @@ const handleNoteSave = async (content: string) => {
   
   try {
     // 显示加载状态
-    const loadingInstance = ElMessage.loading({
-      message: '正在保存笔记...',
-      duration: 0
+    const loadingInstance = ElLoading.service({
+      text: '正在保存笔记...',
+      background: 'rgba(255, 255, 255, 0.8)'
     })
     
     // 更新笔记内容
