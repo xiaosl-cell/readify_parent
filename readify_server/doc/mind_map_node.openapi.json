@@ -1,0 +1,203 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "readify",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "tags": [
+    {
+      "name": "思维导图节点管理"
+    }
+  ],
+  "paths": {
+    "/mind-map-nodes/sub-tree/{nodeId}": {
+      "get": {
+        "summary": "获取节点子树",
+        "deprecated": false,
+        "description": "根据节点ID获取以该节点为根的子树",
+        "operationId": "getSubTree",
+        "tags": [
+          "思维导图节点管理"
+        ],
+        "parameters": [
+          {
+            "name": "nodeId",
+            "in": "path",
+            "description": "节点ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6NiwiaWF0IjoxNzQwNzY3NjIwLCJleHAiOjE3NDA4NTQwMjB9.OY5Z6CcjM3zMt50mTjXB-FwcrQsR-gLOIHZUUHDPfHBGIgsFWL5KJdxg6z-eHC3u",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6NiwiaWF0IjoxNzQwNzY3NjIwLCJleHAiOjE3NDA4NTQwMjB9.OY5Z6CcjM3zMt50mTjXB-FwcrQsR-gLOIHZUUHDPfHBGIgsFWL5KJdxg6z-eHC3u"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMindMapNodeTreeVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/mind-map-nodes/full-tree/{mindMapId}": {
+      "get": {
+        "summary": "获取完整思维导图结构",
+        "deprecated": false,
+        "description": "根据思维导图ID获取完整的思维导图树形结构",
+        "operationId": "getFullMindMap",
+        "tags": [
+          "思维导图节点管理"
+        ],
+        "parameters": [
+          {
+            "name": "mindMapId",
+            "in": "path",
+            "description": "思维导图ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6NiwiaWF0IjoxNzQwNzY3NjIwLCJleHAiOjE3NDA4NTQwMjB9.OY5Z6CcjM3zMt50mTjXB-FwcrQsR-gLOIHZUUHDPfHBGIgsFWL5KJdxg6z-eHC3u",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6NiwiaWF0IjoxNzQwNzY3NjIwLCJleHAiOjE3NDA4NTQwMjB9.OY5Z6CcjM3zMt50mTjXB-FwcrQsR-gLOIHZUUHDPfHBGIgsFWL5KJdxg6z-eHC3u"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMindMapNodeTreeVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "MindMapNodeTreeVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "节点ID",
+            "format": "int64"
+          },
+          "projectId": {
+            "type": "integer",
+            "description": "项目ID",
+            "format": "int64"
+          },
+          "fileId": {
+            "type": "integer",
+            "description": "文件ID",
+            "format": "int64"
+          },
+          "mindMapId": {
+            "type": "integer",
+            "description": "思维导图ID",
+            "format": "int64"
+          },
+          "parentId": {
+            "type": "integer",
+            "description": "父节点ID，根节点为null",
+            "format": "int64"
+          },
+          "content": {
+            "type": "string",
+            "description": "节点内容"
+          },
+          "sequence": {
+            "type": "integer",
+            "description": "排序序号",
+            "format": "int32"
+          },
+          "level": {
+            "type": "integer",
+            "description": "节点层级，根节点为0",
+            "format": "int32"
+          },
+          "createdTime": {
+            "type": "integer",
+            "description": "创建时间",
+            "format": "int64"
+          },
+          "updatedTime": {
+            "type": "integer",
+            "description": "更新时间",
+            "format": "int64"
+          },
+          "children": {
+            "type": "array",
+            "description": "子节点列表",
+            "items": {
+              "$ref": "#/components/schemas/MindMapNodeTreeVO"
+            }
+          }
+        },
+        "description": "思维导图节点树形结构",
+        "nullable": true
+      },
+      "ResultMindMapNodeTreeVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "状态码",
+            "examples": [
+              "200"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息",
+            "examples": [
+              "操作成功"
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/MindMapNodeTreeVO"
+          }
+        },
+        "description": "通用返回结果"
+      }
+    },
+    "securitySchemes": {}
+  },
+  "servers": []
+}

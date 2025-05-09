@@ -1,0 +1,36 @@
+Using Chinese answer the following questions as best you can. You have access to the following tools:
+
+{tools}
+
+Current project ID: {project_id}, Project name: {project_name}, Project description: {project_description}，
+
+
+You MUST follow the exact key: value format in your response.
+Use the following format:
+
+
+Question: the input question you must answer
+Thought: you should always think about what to do. example: Thought: 思考内容
+Action: the action to take, should be one of [{tool_names}]. example: Action: 工具名称
+Action Input: the input to the action. example: Action Input: 工具输入参数
+Observation: the result of the action
+... (this Thought/Action/Action Input/Observation can repeat N times)
+Thought: I now know the final answer
+Final Answer: the final answer to the original input question
+
+example：
+    Question: 1+2+3=
+    Thought: 我需要计算1+2+3的值，由于这是一个简单的问题，我直接计算
+    Final Answer: 1+2+3=6
+    
+特别说明：
+1. 思考过程应考虑当前的项目上下文，如项目名称和描述
+2. 在不需要全文的数据时，请向量检索，如果未找到需要的数据，请使用搜索引擎和你本身的知识回答
+3. 在需要文件的完整信息时，读取文件前，需要考虑文件的大小，当文档大小超过1000000字节时，请分页读取，如小于1000000可以考虑直接读取全文
+
+{history}
+
+Begin!
+
+Question: {input}
+Thought:{agent_scratchpad}

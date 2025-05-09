@@ -1,0 +1,130 @@
+/* 全局CSS文件，专门覆盖Element Plus的select下拉菜单样式 */
+
+/* 统一下拉菜单项高度 */
+.el-select-dropdown__item {
+  height: 28px !important;
+  line-height: 28px !important;
+  padding: 0 12px !important;
+  font-size: 12px !important; /* 统一下拉菜单项的字体大小 */
+}
+
+/* 移除选中项的蓝色背景 */
+.el-select-dropdown__item.selected {
+  background-color: transparent !important;
+  color: #606266 !important;
+  font-weight: normal !important;
+  position: relative !important;
+}
+
+/* 为选中项添加勾选标记 */
+.el-select-dropdown__item.selected::after {
+  content: "✓" !important;
+  position: absolute !important;
+  right: 10px !important;
+  top: 0 !important;
+  color: #409EFF !important;
+  font-weight: bold !important;
+}
+
+/* 调整下拉菜单项内容布局 */
+.el-select-dropdown__item > div {
+  height: 28px !important;
+  display: flex !important;
+  align-items: center !important;
+  margin-right: 15px !important; /* 为勾选标记腾出空间 */
+}
+
+/* 确保图标垂直居中 */
+.el-select-dropdown__item .el-icon {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 100% !important;
+}
+
+/* 自定义悬停样式 */
+.el-select-dropdown__item:hover {
+  background-color: rgba(237, 239, 250, 0.6) !important;
+}
+
+/* 确保下拉菜单背景色为白色 */
+.el-select-dropdown,
+.el-popper.is-light {
+  --el-fill-color-light: #ffffff !important;
+  --el-bg-color: #ffffff !important;
+  --el-fill-color-blank: #ffffff !important;
+  --el-bg-color-overlay: #ffffff !important;
+  background-color: #ffffff !important;
+}
+
+/* 模式选择器下拉菜单圆角 */
+.el-popper.is-light {
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+/* 修复下拉菜单填充 */
+.el-select-dropdown__list {
+  padding: 4px 0 !important;
+}
+
+/* 调整下拉菜单的宽度与select输入框一致 */
+.el-select__popper {
+  min-width: 110px !important;
+  width: auto !important;
+}
+
+/* 专门为模型选择器的下拉菜单设置最小宽度 */
+.model-select + .el-popper {
+  min-width: 120px !important;
+}
+
+/* NoteContainer中的模型选择器下拉菜单需要更宽 */
+.note-container .model-select + .el-popper {
+  min-width: 200px !important;
+}
+
+/* 为模型选择器添加样式 */
+.model-select .el-input__wrapper {
+  border-radius: 40px !important;
+  background-color: #ffffff !important;
+  box-shadow: none !important;
+  min-width: 110px !important; /* 确保有足够的最小宽度 */
+  width: 120px !important; /* 固定宽度确保一致性 */
+}
+
+/* NoteContainer中的模型选择器宽度更大 */
+.note-container .model-select .el-input__wrapper {
+  width: 200px !important;
+}
+
+/* 问答模式选择器专用样式 */
+.mode-select .el-input__wrapper, 
+.mode-select .el-input__inner {
+  background-color: rgb(237, 239, 250) !important;
+  border-radius: 40px !important;
+  box-shadow: none !important;
+}
+
+/* 确保下拉菜单中的选项文本和图标垂直居中 */
+.el-select-dropdown__item {
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* 添加特定类名的样式支持 */
+.readify-styled-dropdown .el-select-dropdown__item.selected::after {
+  content: "✓" !important;
+  position: absolute !important;
+  right: 10px !important;
+  color: #409EFF !important;
+  font-weight: bold !important;
+}
+
+/* 统一字体大小，确保选中和未选中状态一致 */
+.mode-select .el-input__inner,
+.mode-select .el-select-dropdown__item > div > span,
+.model-select .el-input__inner,
+.model-select .el-select-dropdown__item > div > span {
+  font-size: 12px !important;
+} 

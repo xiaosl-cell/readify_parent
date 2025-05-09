@@ -1,0 +1,503 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "readify",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "tags": [
+    {
+      "name": "思维导图管理"
+    }
+  ],
+  "paths": {
+    "/mind-maps/{id}": {
+      "get": {
+        "summary": "获取思维导图详情",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getMindMapById",
+        "tags": [
+          "思维导图管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "思维导图ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6NiwiaWF0IjoxNzQwNzY3NjIwLCJleHAiOjE3NDA4NTQwMjB9.OY5Z6CcjM3zMt50mTjXB-FwcrQsR-gLOIHZUUHDPfHBGIgsFWL5KJdxg6z-eHC3u",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6NiwiaWF0IjoxNzQwNzY3NjIwLCJleHAiOjE3NDA4NTQwMjB9.OY5Z6CcjM3zMt50mTjXB-FwcrQsR-gLOIHZUUHDPfHBGIgsFWL5KJdxg6z-eHC3u"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMindMapVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "put": {
+        "summary": "更新思维导图",
+        "deprecated": false,
+        "description": "",
+        "operationId": "updateMindMap",
+        "tags": [
+          "思维导图管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "思维导图ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6NiwiaWF0IjoxNzQwNzY3NjIwLCJleHAiOjE3NDA4NTQwMjB9.OY5Z6CcjM3zMt50mTjXB-FwcrQsR-gLOIHZUUHDPfHBGIgsFWL5KJdxg6z-eHC3u",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6NiwiaWF0IjoxNzQwNzY3NjIwLCJleHAiOjE3NDA4NTQwMjB9.OY5Z6CcjM3zMt50mTjXB-FwcrQsR-gLOIHZUUHDPfHBGIgsFWL5KJdxg6z-eHC3u"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MindMapVO"
+              },
+              "example": ""
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMindMapVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "summary": "删除思维导图",
+        "deprecated": false,
+        "description": "",
+        "operationId": "deleteMindMap",
+        "tags": [
+          "思维导图管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "思维导图ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6NiwiaWF0IjoxNzQwNzY3NjIwLCJleHAiOjE3NDA4NTQwMjB9.OY5Z6CcjM3zMt50mTjXB-FwcrQsR-gLOIHZUUHDPfHBGIgsFWL5KJdxg6z-eHC3u",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6NiwiaWF0IjoxNzQwNzY3NjIwLCJleHAiOjE3NDA4NTQwMjB9.OY5Z6CcjM3zMt50mTjXB-FwcrQsR-gLOIHZUUHDPfHBGIgsFWL5KJdxg6z-eHC3u"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultBoolean"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/mind-maps": {
+      "post": {
+        "summary": "创建思维导图",
+        "deprecated": false,
+        "description": "",
+        "operationId": "createMindMap",
+        "tags": [
+          "思维导图管理"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6NiwiaWF0IjoxNzQwNzY3NjIwLCJleHAiOjE3NDA4NTQwMjB9.OY5Z6CcjM3zMt50mTjXB-FwcrQsR-gLOIHZUUHDPfHBGIgsFWL5KJdxg6z-eHC3u",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6NiwiaWF0IjoxNzQwNzY3NjIwLCJleHAiOjE3NDA4NTQwMjB9.OY5Z6CcjM3zMt50mTjXB-FwcrQsR-gLOIHZUUHDPfHBGIgsFWL5KJdxg6z-eHC3u"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MindMapVO"
+              },
+              "example": ""
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultMindMapVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/mind-maps/project/{projectId}": {
+      "get": {
+        "summary": "获取项目下所有思维导图",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getProjectMindMaps",
+        "tags": [
+          "思维导图管理"
+        ],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "description": "项目ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6NiwiaWF0IjoxNzQwNzY3NjIwLCJleHAiOjE3NDA4NTQwMjB9.OY5Z6CcjM3zMt50mTjXB-FwcrQsR-gLOIHZUUHDPfHBGIgsFWL5KJdxg6z-eHC3u",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6NiwiaWF0IjoxNzQwNzY3NjIwLCJleHAiOjE3NDA4NTQwMjB9.OY5Z6CcjM3zMt50mTjXB-FwcrQsR-gLOIHZUUHDPfHBGIgsFWL5KJdxg6z-eHC3u"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListMindMapVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/mind-maps/my": {
+      "get": {
+        "summary": "获取用户所有思维导图",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getMyMindMaps",
+        "tags": [
+          "思维导图管理"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6NiwiaWF0IjoxNzQwNzY3NjIwLCJleHAiOjE3NDA4NTQwMjB9.OY5Z6CcjM3zMt50mTjXB-FwcrQsR-gLOIHZUUHDPfHBGIgsFWL5KJdxg6z-eHC3u",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6NiwiaWF0IjoxNzQwNzY3NjIwLCJleHAiOjE3NDA4NTQwMjB9.OY5Z6CcjM3zMt50mTjXB-FwcrQsR-gLOIHZUUHDPfHBGIgsFWL5KJdxg6z-eHC3u"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListMindMapVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/mind-maps/check": {
+      "get": {
+        "summary": "检查思维导图标题是否已存在",
+        "deprecated": false,
+        "description": "",
+        "operationId": "checkMindMapTitle",
+        "tags": [
+          "思维导图管理"
+        ],
+        "parameters": [
+          {
+            "name": "title",
+            "in": "query",
+            "description": "思维导图标题",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "projectId",
+            "in": "query",
+            "description": "项目ID",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6NiwiaWF0IjoxNzQwNzY3NjIwLCJleHAiOjE3NDA4NTQwMjB9.OY5Z6CcjM3zMt50mTjXB-FwcrQsR-gLOIHZUUHDPfHBGIgsFWL5KJdxg6z-eHC3u",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huLmRvZSIsInVzZXJJZCI6NiwiaWF0IjoxNzQwNzY3NjIwLCJleHAiOjE3NDA4NTQwMjB9.OY5Z6CcjM3zMt50mTjXB-FwcrQsR-gLOIHZUUHDPfHBGIgsFWL5KJdxg6z-eHC3u"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultBoolean"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ResultBoolean": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "状态码",
+            "examples": [
+              "200"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息",
+            "examples": [
+              "操作成功"
+            ]
+          },
+          "data": {
+            "type": "boolean",
+            "description": "返回数据",
+            "nullable": true
+          }
+        },
+        "description": "通用返回结果"
+      },
+      "MindMapVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "思维导图ID",
+            "format": "int64",
+            "readOnly": true
+          },
+          "projectId": {
+            "type": "integer",
+            "description": "工程ID",
+            "format": "int64",
+            "examples": [
+              1
+            ]
+          },
+          "fileId": {
+            "type": "integer",
+            "description": "文件ID",
+            "format": "int64",
+            "examples": [
+              1
+            ]
+          },
+          "title": {
+            "type": "string",
+            "description": "思维导图标题",
+            "examples": [
+              "项目架构分析"
+            ]
+          },
+          "type": {
+            "type": "string",
+            "description": "笔记类型",
+            "examples": [
+              "mind_map"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "思维导图描述",
+            "examples": [
+              "这是一个项目架构分析图"
+            ]
+          },
+          "userId": {
+            "type": "integer",
+            "description": "用户ID",
+            "format": "int64",
+            "readOnly": true
+          },
+          "createdAt": {
+            "type": "integer",
+            "description": "创建时间",
+            "format": "int64",
+            "readOnly": true
+          },
+          "updatedAt": {
+            "type": "integer",
+            "description": "更新时间",
+            "format": "int64",
+            "readOnly": true
+          }
+        },
+        "description": "思维导图视图对象"
+      },
+      "ResultMindMapVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "状态码",
+            "examples": [
+              "200"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息",
+            "examples": [
+              "操作成功"
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/MindMapVO"
+          }
+        },
+        "description": "通用返回结果"
+      },
+      "ResultListMindMapVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "状态码",
+            "examples": [
+              "200"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息",
+            "examples": [
+              "操作成功"
+            ]
+          },
+          "data": {
+            "type": "array",
+            "description": "返回数据",
+            "items": {
+              "$ref": "#/components/schemas/MindMapVO"
+            },
+            "nullable": true
+          }
+        },
+        "description": "通用返回结果"
+      }
+    },
+    "securitySchemes": {}
+  },
+  "servers": [],
+  "security": []
+}
