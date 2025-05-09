@@ -1,0 +1,123 @@
+:root {
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: light dark;
+  color: rgba(255, 255, 255, 0.87);
+  background-color: #242424;
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  
+  /* 添加Element Plus全局CSS变量覆盖 */
+  --el-select-border-radius: 4px;
+  --el-input-border-radius: 4px;
+}
+
+/* 全局覆盖Chat组件中的问答模式选择器样式 */
+.mode-select .el-input__wrapper {
+  border-radius: 40px !important;
+  border: 1px solid #409EFF !important;
+  overflow: hidden !important;
+  background-color: rgb(237, 239, 250) !important;
+}
+
+.mode-select .el-input {
+  --el-select-border-radius: 40px !important;
+  --el-input-border-radius: 40px !important;
+}
+
+/* 针对Element Plus的select组件背景色的强制覆盖 */
+.mode-select .el-input__wrapper,
+.mode-select input,
+.el-select__wrapper,
+.el-select-dropdown__item,
+.el-select .el-input .el-input__wrapper,
+.el-select .el-input__wrapper,
+.el-select .el-input__inner,
+.el-input.is-focus .el-input__wrapper,
+.el-select .el-input.is-focus .el-input__wrapper,
+.el-popper.is-light,
+.el-select-dropdown,
+.el-select-dropdown__list,
+.el-scrollbar,
+.el-scrollbar__wrap,
+.el-select-dropdown .el-scrollbar__wrap,
+.el-select .el-tag,
+.el-tag, 
+.el-tag__content {
+  background-color: rgb(237, 239, 250) !important;
+  --el-fill-color-light: rgb(237, 239, 250) !important;
+  --el-fill-color-blank: rgb(237, 239, 250) !important;
+  --el-fill-color: rgb(237, 239, 250) !important;
+  --el-bg-color: rgb(237, 239, 250) !important;
+  --el-bg-color-overlay: rgb(237, 239, 250) !important;
+}
+
+a {
+  font-weight: 500;
+  color: #646cff;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #535bf2;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  place-items: center;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  background-color: #1a1a1a;
+  cursor: pointer;
+  transition: border-color 0.25s;
+}
+button:hover {
+  border-color: #646cff;
+}
+button:focus,
+button:focus-visible {
+  outline: 4px auto -webkit-focus-ring-color;
+}
+
+.card {
+  padding: 2em;
+}
+
+#app {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    color: #213547;
+    background-color: #ffffff;
+  }
+  a:hover {
+    color: #747bff;
+  }
+  button {
+    background-color: #f9f9f9;
+  }
+}

@@ -1,0 +1,1499 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "readify",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "tags": [
+    {
+      "name": "用户管理"
+    },
+    {
+      "name": "认证管理"
+    },
+    {
+      "name": "工程管理"
+    },
+    {
+      "name": "文件管理"
+    }
+  ],
+  "paths": {
+    "/users/{id}": {
+      "get": {
+        "summary": "根据ID获取用户信息",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getUserById",
+        "tags": [
+          "用户管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "用户ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultUserVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "put": {
+        "summary": "更新用户信息",
+        "deprecated": false,
+        "description": "",
+        "operationId": "updateUser",
+        "tags": [
+          "用户管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "用户ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserVO"
+              },
+              "example": ""
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultUserVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "summary": "删除用户",
+        "deprecated": false,
+        "description": "",
+        "operationId": "deleteUser",
+        "tags": [
+          "用户管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "用户ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/users/6": {
+      "get": {
+        "summary": "根据ID获取用户信息",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getUserById",
+        "tags": [
+          "用户管理"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultUserVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/users": {
+      "get": {
+        "summary": "获取所有用户列表",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getAllUsers",
+        "tags": [
+          "用户管理"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListUserVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/users/username/{username}": {
+      "get": {
+        "summary": "根据用户名获取用户信息",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getUserByUsername",
+        "tags": [
+          "用户管理"
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "description": "用户名",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultUserVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/users/check/{username}": {
+      "get": {
+        "summary": "检查用户名是否已存在",
+        "deprecated": false,
+        "description": "",
+        "operationId": "checkUsername",
+        "tags": [
+          "用户管理"
+        ],
+        "parameters": [
+          {
+            "name": "username",
+            "in": "path",
+            "description": "用户名",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultBoolean"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "summary": "用户注册",
+        "deprecated": false,
+        "description": "创建新用户账号",
+        "operationId": "register",
+        "tags": [
+          "认证管理"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterReq"
+              },
+              "example": ""
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "注册成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "400": {
+            "description": "用户名已存在",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            },
+            "headers": {}
+          },
+          "500": {
+            "description": "系统异常",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "用户登录",
+        "deprecated": false,
+        "description": "验证用户凭证并返回访问令牌",
+        "operationId": "login",
+        "tags": [
+          "认证管理"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginReq"
+              },
+              "example": ""
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "登录成功",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/projects/{id}": {
+      "get": {
+        "summary": "根据ID获取工程信息",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getProjectById",
+        "tags": [
+          "工程管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "工程ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultProjectVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "put": {
+        "summary": "更新工程信息",
+        "deprecated": false,
+        "description": "",
+        "operationId": "updateProject",
+        "tags": [
+          "工程管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "工程ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectVO"
+              },
+              "example": ""
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultProjectVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "summary": "删除工程",
+        "deprecated": false,
+        "description": "",
+        "operationId": "deleteProject",
+        "tags": [
+          "工程管理"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "工程ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/projects": {
+      "get": {
+        "summary": "获取所有工程列表",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getAllProjects",
+        "tags": [
+          "工程管理"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListProjectVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "post": {
+        "summary": "创建工程",
+        "deprecated": false,
+        "description": "",
+        "operationId": "createProject",
+        "tags": [
+          "工程管理"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectVO"
+              },
+              "example": ""
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultProjectVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/projects/name/{name}": {
+      "get": {
+        "summary": "根据名称获取工程信息",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getProjectByName",
+        "tags": [
+          "工程管理"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "工程名称",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultProjectVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/projects/my": {
+      "get": {
+        "summary": "获取我的工程列表",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getMyProjects",
+        "tags": [
+          "工程管理"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultListProjectVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/projects/check/{name}": {
+      "get": {
+        "summary": "检查工程名称是否已存在",
+        "deprecated": false,
+        "description": "",
+        "operationId": "checkProjectName",
+        "tags": [
+          "工程管理"
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "description": "工程名称",
+            "required": true,
+            "example": "",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultBoolean"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/files": {
+      "post": {
+        "summary": "上传文件",
+        "deprecated": false,
+        "description": "",
+        "operationId": "upload",
+        "tags": [
+          "文件管理"
+        ],
+        "parameters": [
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "description": "文件",
+                    "format": "binary"
+                  }
+                }
+              },
+              "example": ""
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultFileVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/files/{fileId}": {
+      "get": {
+        "summary": "获取文件信息",
+        "deprecated": false,
+        "description": "",
+        "operationId": "getFileInfo",
+        "tags": [
+          "文件管理"
+        ],
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "description": "文件ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultFileVO"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      },
+      "delete": {
+        "summary": "删除文件",
+        "deprecated": false,
+        "description": "",
+        "operationId": "delete",
+        "tags": [
+          "文件管理"
+        ],
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "description": "文件ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResultVoid"
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/files/{fileId}/download": {
+      "get": {
+        "summary": "下载文件",
+        "deprecated": false,
+        "description": "",
+        "operationId": "download",
+        "tags": [
+          "文件管理"
+        ],
+        "parameters": [
+          {
+            "name": "fileId",
+            "in": "path",
+            "description": "文件ID",
+            "required": true,
+            "example": 0,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "description": "",
+            "example": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4",
+            "schema": {
+              "type": "string",
+              "default": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJqb2huLmRvZSIsImlkIjo2LCJpYXQiOjE3NDA0MDUyMTUsImV4cCI6MTc0MDQ5MTYxNX0.4Z8XMTuYrNhXOJ7ZuclS0AWSfBoN0Leq9iAMs8NH6-4"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "用户ID",
+            "format": "int64",
+            "readOnly": true
+          },
+          "username": {
+            "type": "string",
+            "description": "用户名",
+            "examples": [
+              "johndoe"
+            ]
+          },
+          "password": {
+            "type": "string",
+            "description": "密码",
+            "examples": [
+              "password123"
+            ]
+          },
+          "email": {
+            "type": "string",
+            "description": "电子邮箱",
+            "examples": [
+              "john@example.com"
+            ]
+          },
+          "phone": {
+            "type": "string",
+            "description": "手机号码",
+            "examples": [
+              "13800138000"
+            ]
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "账户是否启用",
+            "examples": [
+              true
+            ]
+          },
+          "createTime": {
+            "type": "integer",
+            "description": "创建时间",
+            "format": "int64",
+            "readOnly": true
+          },
+          "updateTime": {
+            "type": "integer",
+            "description": "更新时间",
+            "format": "int64",
+            "readOnly": true
+          }
+        },
+        "description": "用户实体类"
+      },
+      "UserVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "用户ID",
+            "format": "int64",
+            "readOnly": true
+          },
+          "username": {
+            "type": "string",
+            "description": "用户名",
+            "examples": [
+              "johndoe"
+            ]
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "账户是否启用",
+            "examples": [
+              true
+            ]
+          },
+          "createTime": {
+            "type": "integer",
+            "description": "创建时间",
+            "format": "int64",
+            "readOnly": true
+          },
+          "updateTime": {
+            "type": "integer",
+            "description": "更新时间",
+            "format": "int64",
+            "readOnly": true
+          }
+        },
+        "description": "用户视图对象"
+      },
+      "ResultUser": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/User"
+          }
+        }
+      },
+      "ResultUserVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "状态码",
+            "examples": [
+              "200"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息",
+            "examples": [
+              "操作成功"
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/UserVO"
+          }
+        },
+        "description": "通用返回结果"
+      },
+      "ResultListUser": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/User"
+            }
+          }
+        }
+      },
+      "RegisterReq": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "用户名",
+            "examples": [
+              "john.doe"
+            ]
+          },
+          "password": {
+            "type": "string",
+            "description": "密码"
+          }
+        },
+        "description": "注册请求"
+      },
+      "ProjectVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "工程ID",
+            "format": "int64",
+            "readOnly": true
+          },
+          "userId": {
+            "type": "integer",
+            "description": "用户ID",
+            "format": "int64",
+            "readOnly": true
+          },
+          "name": {
+            "type": "string",
+            "description": "工程名称",
+            "examples": [
+              "示例工程"
+            ]
+          },
+          "description": {
+            "type": "string",
+            "description": "工程描述",
+            "examples": [
+              "这是一个示例工程"
+            ]
+          },
+          "createTime": {
+            "type": "integer",
+            "description": "创建时间",
+            "format": "int64",
+            "readOnly": true
+          },
+          "updateTime": {
+            "type": "integer",
+            "description": "更新时间",
+            "format": "int64",
+            "readOnly": true
+          }
+        },
+        "description": "工程视图对象"
+      },
+      "ResultBoolean": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "状态码",
+            "examples": [
+              "200"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息",
+            "examples": [
+              "操作成功"
+            ]
+          },
+          "data": {
+            "type": "boolean",
+            "description": "返回数据",
+            "nullable": true
+          }
+        },
+        "description": "通用返回结果"
+      },
+      "ResultProjectVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "状态码",
+            "examples": [
+              "200"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息",
+            "examples": [
+              "操作成功"
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/ProjectVO"
+          }
+        },
+        "description": "通用返回结果"
+      },
+      "ResultVoid": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "状态码",
+            "examples": [
+              "200"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息",
+            "examples": [
+              "操作成功"
+            ]
+          },
+          "data": {
+            "type": "object",
+            "description": "返回数据",
+            "properties": {},
+            "nullable": true
+          }
+        },
+        "description": "通用返回结果"
+      },
+      "LoginReq": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "用户名",
+            "examples": [
+              "john.doe"
+            ]
+          },
+          "password": {
+            "type": "string",
+            "description": "密码"
+          }
+        },
+        "description": "登录请求"
+      },
+      "FileVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "originalName": {
+            "type": "string"
+          },
+          "mimeType": {
+            "type": "string"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "createTime": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "updateTime": {
+            "type": "integer",
+            "format": "int64"
+          }
+        },
+        "description": "返回数据",
+        "nullable": true
+      },
+      "LoginVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "用户ID",
+            "format": "int64",
+            "readOnly": true
+          },
+          "username": {
+            "type": "string",
+            "description": "用户名",
+            "examples": [
+              "johndoe"
+            ]
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "账户是否启用",
+            "examples": [
+              true
+            ]
+          },
+          "createTime": {
+            "type": "integer",
+            "description": "创建时间",
+            "format": "int64",
+            "readOnly": true
+          },
+          "updateTime": {
+            "type": "integer",
+            "description": "更新时间",
+            "format": "int64",
+            "readOnly": true
+          },
+          "token": {
+            "type": "string",
+            "description": "访问令牌",
+            "readOnly": true,
+            "examples": [
+              "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            ]
+          }
+        },
+        "description": "登录响应"
+      },
+      "ResultFileVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "状态码",
+            "examples": [
+              "200"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息",
+            "examples": [
+              "操作成功"
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/FileVO"
+          }
+        },
+        "description": "通用返回结果"
+      },
+      "ResultLoginVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "状态码",
+            "examples": [
+              "200"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息",
+            "examples": [
+              "操作成功"
+            ]
+          },
+          "data": {
+            "$ref": "#/components/schemas/LoginVO"
+          }
+        },
+        "description": "通用返回结果"
+      },
+      "ResultListUserVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "状态码",
+            "examples": [
+              "200"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息",
+            "examples": [
+              "操作成功"
+            ]
+          },
+          "data": {
+            "type": "array",
+            "description": "返回数据",
+            "items": {
+              "$ref": "#/components/schemas/UserVO"
+            },
+            "nullable": true
+          }
+        },
+        "description": "通用返回结果"
+      },
+      "ResultListProjectVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "状态码",
+            "examples": [
+              "200"
+            ]
+          },
+          "message": {
+            "type": "string",
+            "description": "提示信息",
+            "examples": [
+              "操作成功"
+            ]
+          },
+          "data": {
+            "type": "array",
+            "description": "返回数据",
+            "items": {
+              "$ref": "#/components/schemas/ProjectVO"
+            },
+            "nullable": true
+          }
+        },
+        "description": "通用返回结果"
+      }
+    },
+    "securitySchemes": {}
+  },
+  "servers": []
+}
