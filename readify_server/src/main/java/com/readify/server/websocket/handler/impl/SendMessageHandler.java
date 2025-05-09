@@ -1,5 +1,6 @@
 package com.readify.server.websocket.handler.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.readify.server.websocket.WebSocketSessionManager;
@@ -15,6 +16,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.socket.WebSocketSession;
 import reactor.core.publisher.Flux;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -64,7 +66,17 @@ public class SendMessageHandler implements WebSocketMessageHandler<SendMessageRe
                     if (req.getMindMapId() != null) {
                         Map<String, Object> context = new HashMap<>();
                         context.put("mind_map_id", req.getMindMapId());
-                        uriBuilder.queryParam("context", context);
+                        ObjectMapper mapper = new ObjectMapper();
+                        String contextJson;
+                        try {
+                            contextJson = mapper.writeValueAsString(context);
+                            // 对JSON字符串进行URL编码
+                            contextJson = java.net.URLEncoder.encode(contextJson, StandardCharsets.UTF_8);
+                            uriBuilder.queryParam("context", contextJson);
+                        } catch (Exception e) {
+                            log.error("Failed to process context data", e);
+                            throw new RuntimeException("Failed to process context data", e);
+                        }
                     }
                     
                     return uriBuilder.build();

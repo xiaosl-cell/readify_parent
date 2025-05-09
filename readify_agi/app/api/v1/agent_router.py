@@ -28,7 +28,7 @@ async def get_coordinator_service(
         project_id: 项目ID
         vendor: 模型厂商
         task_type: 任务类型 ask/note
-        context: 其他补充信息，Dict
+        context: 其他补充信息，uri编码的json字符串
         
     Returns:
         CoordinatorAgentService: 协调Agent服务实例
