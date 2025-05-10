@@ -18,6 +18,28 @@ Readify是一个智能阅读笔记助手系统，通过AI技术帮助用户轻�
 - **Readify Server** - 基于Spring Boot的后端服务
 - **Readify AGI** - 基于Python FastAPI的智能服务底座
 
+## 📸 功能展示
+
+<div align="center">
+  <img src="img/1-首页.png" alt="首页" width="80%">
+  <p><i>首页 - 项目管理和文档上传</i></p>
+  
+  <img src="img/2-对话-1.png" alt="对话界面1" width="80%">
+  <p><i>对话界面 - 智能问答</i></p>
+  
+  <img src="img/3-对话-2.png" alt="对话界面2" width="80%">
+  <p><i>对话界面 - 实时交互</i></p>
+  
+  <img src="img/4-笔记.png" alt="笔记界面" width="80%">
+  <p><i>笔记界面 - 笔记管理</i></p>
+  
+  <img src="img/5-笔记生成.png" alt="笔记生成" width="80%">
+  <p><i>笔记生成 - 自动分析</i></p>
+  
+  <img src="img/6-笔记生成.png" alt="笔记生成结果" width="80%">
+  <p><i>笔记生成 - 结果展示</i></p>
+</div>
+
 ## ✨ 核心功能
 - 📝 **智能问答** - 自动分析文档内容，结合搜索引擎回答用户问题
 - 📝 **智能笔记生成** - 自动分析文档内容，生成结，支持多层级展示构化笔记
