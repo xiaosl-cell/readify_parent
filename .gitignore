@@ -103,6 +103,8 @@ yarn-error.log*
 **/config/private.json
 config.local.js
 config.local.json
+readify_server/.mvn/wrapper/maven-wrapper.properties
+readify_server/src/main/resources/application.yml
 
 # 系统生成的文件 (System generated files)
 *.class
@@ -122,5 +124,3 @@ config.local.json
 *.pem
 *.cert
 *.p12
-readify_server/.mvn/wrapper/maven-wrapper.properties
-readify_server/src/main/resources/application.yml
