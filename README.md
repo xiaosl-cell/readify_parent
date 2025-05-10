@@ -90,20 +90,47 @@ git clone https://github.com/xiaosl-cell/readify_parent.git
 cd readify
 ```
 
-2. **启动后端服务 (Readify Server)**
+2. **配置后端服务 (Readify Server)**
+```bash
+cd readify_server
+# 修改数据库配置
+vim src/main/resources/application.yml
+# 修改以下配置项：
+# - spring.datasource.url: 数据库连接地址
+# - spring.datasource.username: 数据库用户名
+# - spring.datasource.password: 数据库密码
+# - jwt.secret: JWT密钥
+# - readify.agi.base-url: AGI服务地址
+```
+
+3. **配置AGI服务 (Readify AGI)**
+```bash
+cd readify_agi
+# 修改环境配置
+copy .env.example .env
+vim .env
+# 修改相关api密钥和地址
+
+cd /readify_server
+# 修改数据库配置
+vim src/main/resources/application.yml
+# 修改数据库、agi服务等相关配置
+```
+
+4. **启动后端服务 (Readify Server)**
 ```bash
 cd readify_server
 ./mvnw spring-boot:run
 ```
 
-3. **启动AGI服务 (Readify AGI)**
+5. **启动AGI服务 (Readify AGI)**
 ```bash
 cd readify_agi
 pip install -r requirements.txt
 python main.py
 ```
 
-4. **启动前端应用 (Readify Frontend)**
+6. **启动前端应用 (Readify Frontend)**
 ```bash
 cd readify_frontend
 npm install
