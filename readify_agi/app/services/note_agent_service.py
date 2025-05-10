@@ -182,11 +182,45 @@ class NoteAgentService(AgentService):
             }
             
             return json.dumps(result, ensure_ascii=False, indent=2)
+            
+        @tool
+        async def get_document_by_id(input_str: str) -> str:
+            """
+            根据文档ID查询完整的文档信息，包括内容、元数据等。
+            
+            参数:
+                input_str: 输入参数JSON字符串，格式为 {"document_id": 文档ID}
+                
+            返回:
+                完整的文档信息，JSON格式
+            """
+            params = json.loads(input_str) if isinstance(input_str, str) else input_str
+            document_id = params.get("document_id")
+            
+            # 获取文档信息
+            document = await self.document_repo.get_by_id(document_id)
+            if not document:
+                return f"找不到ID为{document_id}的文档"
+                
+            # 将文档对象转换为字典，然后序列化为JSON字符串
+            document_dict = {
+                "id": document.id,
+                "file_id": document.file_id,
+                "content": document.content,
+                "sequence": document.sequence,
+                "page_number": document.page_number,
+                "metadata": document.metadata,
+                "created_at": document.created_at.isoformat() if document.created_at else None,
+                "updated_at": document.updated_at.isoformat() if document.updated_at else None
+            }
+            
+            return json.dumps(document_dict, ensure_ascii=False, indent=2)
 
         tools.extend([
             query_mind_map_tree,
             batch_add_child_nodes,
-            query_file_documents
+            query_file_documents,
+            get_document_by_id
         ])
         self.tools = tools
         return tools

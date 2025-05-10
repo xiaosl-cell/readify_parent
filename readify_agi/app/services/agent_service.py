@@ -32,7 +32,7 @@ def get_llm_config(vendor: str):
         }
     elif vendor == "Qwen":
         return {
-            "model_name": "qwq-plus-latest",
+            "model_name": "qwen3-235b-a22b",
             "api_key": settings.QWEN_API_KEY,
             "base_url": settings.QWEN_API_BASE
         }
