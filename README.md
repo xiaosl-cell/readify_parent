@@ -162,7 +162,7 @@ npm run dev
 
 ## 📡 接口文档
 
-- Readify Server API: http://localhost:8080/swagger-ui.html
+- Readify Server API: http://localhost:8080/api/v1/swagger-ui/index.html
 - Readify AGI API: http://localhost:8090/docs
 
 ## 📋 开发指南
