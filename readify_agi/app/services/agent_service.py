@@ -6,7 +6,7 @@ from langchain.agents import AgentExecutor, create_react_agent
 from langchain.prompts import PromptTemplate
 from langchain_core.agents import AgentFinish
 from langchain_core.runnables import Runnable
-from langchain_core.tools import BaseTool
+from langchain_core.tools import BaseTool, tool
 from langchain_openai import ChatOpenAI
 
 from app.core.config import settings
@@ -144,7 +144,65 @@ class AgentService:
             List[BaseTool]: 工具列表
         """
         # 默认工具集为空，子类需要重写此方法以添加特定工具
-        return []
+        
+        # 添加向量检索工具
+        @tool
+        async def search_files_tool(input_str: str) -> str:
+            """
+            在项目文件中执行语义搜索
+            
+            Args:
+                input_str: 输入参数JSON字符串，格式为 {"query": "搜索查询", "top_k": 返回结果数量}
+                
+            Returns:
+                str: 格式化的搜索结果
+            """
+            try:
+                # 解析输入参数
+                params = json.loads(input_str) if isinstance(input_str, str) else input_str
+                
+                # 获取参数
+                query = params.get("query")
+                top_k = params.get("top_k", 5)
+                
+                # 确保查询不为空
+                if not query:
+                    return "错误: 搜索查询不能为空"
+                
+                # 使用当前实例的项目ID
+                project_id = self.project_id
+                
+                # 使用文件仓库进行向量检索
+                from app.services.file_service import FileService
+                file_service = FileService(self.file_repo)
+                
+                # 执行向量检索
+                results = await file_service.search_files_by_vector(
+                    project_id=project_id,
+                    input_text=query,
+                    top_k=top_k
+                )
+                
+                # 格式化结果
+                if not results:
+                    return "未找到相关文件内容"
+                    
+                formatted_results = []
+                for i, result in enumerate(results, 1):
+                    formatted_results.append(
+                        f"结果 {i}:\n"
+                        f"文件: {result['file_name']}\n"
+                        f"内容: {result['content']}\n"
+                        f"相似度: {1 - result['distance']:.2f}\n"
+                    )
+                    
+                return "\n".join(formatted_results)
+            except json.JSONDecodeError:
+                return "错误: 无效的JSON格式参数"
+            except Exception as e:
+                return f"文件搜索时发生错误: {str(e)}"
+
+        return [search_files_tool]
     
     def _create_agent_executor(self) -> Runnable[dict[str, Any], dict[str, Any]]:
         """
