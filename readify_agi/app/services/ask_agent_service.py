@@ -61,6 +61,9 @@ class AskAgentService(AgentService):
             List[BaseTool]: 工具列表
         """
         
+        # 获取父类的工具
+        tools = await super()._load_tools()
+        
         # 检查SerpAPI密钥是否存在
         serpapi_api_key = os.getenv('SERPAPI_API_KEY')
         if not serpapi_api_key:
@@ -68,63 +71,6 @@ class AskAgentService(AgentService):
         # 添加网络搜索工具
         search = SerpAPIWrapper(serpapi_api_key=serpapi_api_key)
 
-        
-        # 添加向量检索工具
-        @tool
-        async def search_files_tool(input_str: str) -> str:
-            """
-            在项目文件中执行语义搜索
-            
-            Args:
-                input_str: 输入参数JSON字符串，格式为 {"query": "搜索查询", "top_k": 返回结果数量}
-                
-            Returns:
-                str: 格式化的搜索结果
-            """
-            try:
-                # 解析输入参数
-                params = json.loads(input_str) if isinstance(input_str, str) else input_str
-                
-                # 获取参数
-                query = params.get("query")
-                top_k = params.get("top_k", 5)
-                
-                # 确保查询不为空
-                if not query:
-                    return "错误: 搜索查询不能为空"
-                
-                # 使用当前实例的项目ID
-                project_id = self.project_id
-                
-                # 使用父类已初始化的文件仓库
-                file_service = FileService(self.file_repo)
-                
-                # 执行向量检索，不再传递db参数
-                results = await file_service.search_files_by_vector(
-                    project_id=project_id,
-                    input_text=query,
-                    top_k=top_k
-                )
-                
-                # 格式化结果
-                if not results:
-                    return "未找到相关文件内容"
-                    
-                formatted_results = []
-                for i, result in enumerate(results, 1):
-                    formatted_results.append(
-                        f"结果 {i}:\n"
-                        f"文件: {result['file_name']}\n"
-                        f"内容: {result['content']}\n"
-                        f"相似度: {1 - result['distance']:.2f}\n"
-                    )
-                    
-                return "\n".join(formatted_results)
-            except json.JSONDecodeError:
-                return "错误: 无效的JSON格式参数"
-            except Exception as e:
-                return f"文件搜索时发生错误: {str(e)}"
-        
         # 添加项目文件列表工具
         @tool
         async def list_project_files(input_str: str = "{}") -> str:
@@ -236,16 +182,13 @@ class AskAgentService(AgentService):
         from langchain_core.tools import Tool
 
         # 修改工具列表，确保正确处理异步工具
-        self.tools = [
-            # 对于同步工具，使用Tool.from_function
-
+        tools.extend([
             Tool.from_function(
                 func=search.run,
                 name="Search",
                 description="搜索引擎接口，用于搜索互联网上的信息，当用户问题需要获取最新信息或项目文件中不包含的信息时使用"
             ),
             # 对于异步工具，正确使用AsyncTool或者保持原样（@tool装饰器会创建正确的AsyncTool）
-            search_files_tool,
             list_project_files,
             read_file_content,
         ]
