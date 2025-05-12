@@ -191,7 +191,7 @@ class AskAgentService(AgentService):
             # 对于异步工具，正确使用AsyncTool或者保持原样（@tool装饰器会创建正确的AsyncTool）
             list_project_files,
             read_file_content,
-        ]
+        ])
         
         return self.tools
 

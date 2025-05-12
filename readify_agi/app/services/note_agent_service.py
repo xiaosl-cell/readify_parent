@@ -208,8 +208,6 @@ class NoteAgentService(AgentService):
                 "file_id": document.file_id,
                 "content": document.content,
                 "sequence": document.sequence,
-                "page_number": document.page_number,
-                "metadata": document.metadata,
                 "created_at": document.created_at.isoformat() if document.created_at else None,
                 "updated_at": document.updated_at.isoformat() if document.updated_at else None
             }
