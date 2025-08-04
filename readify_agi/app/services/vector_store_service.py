@@ -30,11 +30,9 @@ class VectorStoreService:
             add_start_index=True
         )
 
-        # 初始化 ChromaDB 客户端
-        self.client = chromadb.HttpClient(
-            host=settings.CHROMA_SERVER_HOST,
-            port=settings.CHROMA_SERVER_PORT,
-            ssl=settings.CHROMA_SERVER_SSL_ENABLED
+        # 初始化 ChromaDB 客户端（使用本地持久化存储）
+        self.client = chromadb.PersistentClient(
+            path=settings.VECTOR_STORE_DIR
         )
 
     async def vectorize_text(
@@ -97,7 +95,7 @@ class VectorStoreService:
         collection = self.client.get_or_create_collection(collection_name)
         
         # 生成嵌入向量
-        embeddings = self.embeddings.embed_documents(all_texts)
+        embeddings = self.embeddings.embed_documents(all_texts, 50)
         
         # 生成文档ID
         ids = [f"doc_{i}" for i in range(len(all_texts))]
