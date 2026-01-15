@@ -24,7 +24,7 @@ Readify AGI 是 Readify 智能读书助手的 AGI 底座，主要有如下能力
 
 ## 🛠️ 技术栈
 
-- **后端框架**: FastAPI, Python 3.9
+- **后端框架**: FastAPI, Python 3.11
 - **大语言模型**: OpenAI, Qwen, Deepseek...
 - **Agent框架**: LangChain
 - **数据库**: SQLAlchemy, MySQL
@@ -34,28 +34,30 @@ Readify AGI 是 Readify 智能读书助手的 AGI 底座，主要有如下能力
 
 ## 📋 前提条件
 
-- Python 3.9 或更高版本
+- Python 3.11
 - Conda 或 pip 包管理工具
 
 ## 🚀 快速开始
 
-### 环境配置
+1. 确保本地conda环境已安装并能够正常工作
 
-1. 使用 Conda 创建环境：
+2. 创建、激活conda环境，安装依赖
 
 ```bash
-# 创建并激活环境
-conda env create -f environment.yml
+# 1. 创建新的conda环境
+conda create -n readify_agi python=3.11 -y
+
+# 2. 激活环境
 conda activate readify_agi
-```
 
-2. 或直接使用 pip 安装依赖：
+# 3. 配置pip镜像源（可选）
+pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple/
 
-```bash
+# 4. 安装依赖
 pip install -r requirements.txt
 ```
 
-### 启动服务
+3. 启动服务
 
 ```bash
 python main.py
