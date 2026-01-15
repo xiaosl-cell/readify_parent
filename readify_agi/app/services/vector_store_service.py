@@ -94,18 +94,27 @@ class VectorStoreService:
         # 获取或创建集合
         collection = self.client.get_or_create_collection(collection_name)
         
-        # 生成嵌入向量
-        embeddings = self.embeddings.embed_documents(all_texts, 50)
-        
         # 生成文档ID
         ids = [f"doc_{i}" for i in range(len(all_texts))]
         
-        # 批量添加文档到集合
-        collection.add(
-            documents=all_texts,
-            embeddings=embeddings,
-            ids=ids
-        )
+        # 批量添加文档到集合（分批处理以避免超过最大批次限制）
+        batch_size = 500
+        total_docs = len(all_texts)
+        
+        for i in range(0, total_docs, batch_size):
+            end_idx = min(i + batch_size, total_docs)
+            batch_texts = all_texts[i:end_idx]
+            
+            # 生成当前批次的嵌入向量
+            batch_embeddings = self.embeddings.embed_documents(batch_texts)
+            batch_ids = ids[i:end_idx]
+            
+            collection.add(
+                documents=batch_texts,
+                embeddings=batch_embeddings,
+                ids=batch_ids
+            )
+            print(f"[向量检索] 已添加批次 {i // batch_size + 1}/{(total_docs + batch_size - 1) // batch_size} (文档 {i} - {end_idx})")
 
 
     async def search_similar_texts(
