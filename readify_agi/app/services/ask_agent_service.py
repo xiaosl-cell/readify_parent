@@ -1,5 +1,4 @@
 import json
-import os
 from pathlib import Path
 from typing import List, Dict, Any, Callable, Awaitable
 
@@ -64,12 +63,14 @@ class AskAgentService(AgentService):
         # 获取父类的工具
         tools = await super()._load_tools()
         
-        # 检查SerpAPI密钥是否存在
-        serpapi_api_key = os.getenv('SERPAPI_API_KEY')
-        if not serpapi_api_key:
-            print("警告: 未设置SERPAPI_API_KEY环境变量，搜索工具将不可用")
-        # 添加网络搜索工具
-        search = SerpAPIWrapper(serpapi_api_key=serpapi_api_key)
+        # 检查SerpAPI密钥（从 Settings 支持 Nacos 配置）
+        serpapi_api_key = settings.SERPAPI_API_KEY
+        search_tool = None
+        if serpapi_api_key:
+            search = SerpAPIWrapper(serpapi_api_key=serpapi_api_key)
+            search_tool = search
+        else:
+            print("警告: 未设置 SERPAPI_API_KEY，搜索工具将不可用（Nacos 配置或环境变量缺失）")
 
         # 添加项目文件列表工具
         @tool
@@ -182,12 +183,16 @@ class AskAgentService(AgentService):
         from langchain_core.tools import Tool
 
         # 修改工具列表，确保正确处理异步工具
+        if search_tool:
+            tools.append(
+                Tool.from_function(
+                    func=search_tool.run,
+                    name="Search",
+                    description="搜索引擎接口，用于搜索互联网上的信息，当用户问题需要获取最新信息或项目文件中不包含的信息时使用"
+                )
+            )
+
         tools.extend([
-            Tool.from_function(
-                func=search.run,
-                name="Search",
-                description="搜索引擎接口，用于搜索互联网上的信息，当用户问题需要获取最新信息或项目文件中不包含的信息时使用"
-            ),
             # 对于异步工具，正确使用AsyncTool或者保持原样（@tool装饰器会创建正确的AsyncTool）
             list_project_files,
             read_file_content,

@@ -124,3 +124,10 @@ readify_server/src/main/resources/application.yml
 *.pem
 *.cert
 *.p12
+
+# nacos
+/nacos/mysql-data
+
+# agi
+/readify_agi/data
+/readify_server/files
