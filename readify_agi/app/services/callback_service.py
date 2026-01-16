@@ -1,8 +1,13 @@
-import aiohttp
+# 标准库导入
+import logging
 import time
 import traceback
-import logging
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
+
+# 第三方库导入
+import aiohttp
+
+# 本地应用导入
 from app.core.config import settings
 from app.core.nacos_client import get_service_discovery
 
@@ -31,7 +36,7 @@ class CallbackService:
             # 从Nacos获取readify-server服务地址
             callback_url = await service_discovery.get_service_url(
                 service_name=settings.READIFY_SERVER_SERVICE_NAME,
-                path="/files/vectorized",
+                path="/api/v1/files/vectorized",
                 group_name=settings.NACOS_GROUP,
                 use_https=False,
                 strategy="random"

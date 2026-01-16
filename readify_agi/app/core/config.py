@@ -1,9 +1,12 @@
-from pydantic_settings import BaseSettings
-import os
+# 标准库导入
 import asyncio
 import logging
+import os
 from typing import Any, Dict
+
+# 第三方库导入
 from dotenv import load_dotenv
+from pydantic_settings import BaseSettings
 
 try:
     import yaml
@@ -11,11 +14,11 @@ except ImportError:
     yaml = None  # type: ignore
 
 try:
-    from v2.nacos import NacosConfigService, ClientConfig, ConfigParam  # type: ignore
+    from v2.nacos import ClientConfig, ConfigParam, NacosConfigService  # type: ignore
 except Exception:  # pragma: no cover - nacos-sdk not installed
-    NacosConfigService = None  # type: ignore
     ClientConfig = None  # type: ignore
     ConfigParam = None  # type: ignore
+    NacosConfigService = None  # type: ignore
 
 logger = logging.getLogger(__name__)
 
