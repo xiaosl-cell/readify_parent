@@ -1,31 +1,21 @@
+# 标准库导入
 import asyncio
 import logging
-import socket
 import random
-from typing import Optional, List, Dict, Any
+import socket
+from typing import Any, Dict, List, Optional
 
-try:
-    from v2.nacos import (
-        NacosNamingService,
-        ClientConfig,
-        RegisterInstanceParam,
-        DeregisterInstanceParam,
-        NacosException,
-    )
-    # ListInstanceParam 用于服务发现
-    try:  # pragma: no cover
-        from v2.nacos.naming.model.naming_param import ListInstanceParam  # type: ignore
-    except Exception:  # pragma: no cover
-        ListInstanceParam = None  # type: ignore
-except Exception:  # pragma: no cover - optional dependency handled at runtime
-    NacosNamingService = None  # type: ignore
-    ClientConfig = None  # type: ignore
-    RegisterInstanceParam = None  # type: ignore
-    DeregisterInstanceParam = None  # type: ignore
-    NacosException = Exception  # type: ignore
-    ListInstanceParam = None  # type: ignore
-    SelectInstanceParam = None  # type: ignore
+# 第三方库导入
+from v2.nacos import (
+    ClientConfig,
+    DeregisterInstanceParam,
+    NacosException,
+    NacosNamingService,
+    RegisterInstanceParam,
+)
+from v2.nacos.naming.model.naming_param import ListInstanceParam  # type: ignore
 
+# 本地应用导入
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
