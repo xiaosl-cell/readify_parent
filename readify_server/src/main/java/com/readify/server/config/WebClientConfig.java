@@ -1,31 +1,40 @@
 package com.readify.server.config;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.client.loadbalancer.LoadBalanced;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.reactive.function.client.WebClient;
+
 import java.util.Objects;
 
 @Configuration
 public class WebClientConfig {
 
-    @Value("${readify.vector-service.url:http://localhost:8090}")
-    private String vectorServiceUrl;
-
-    @Value("${readify.agent-service.url:http://localhost:8090}")
-    private String agentServiceUrl;
+    @Value("${readify.agi-service.name}")
+    private String agiServiceName;
 
     @Bean
-    public WebClient vectorServiceClient() {
-        return WebClient.builder()
-                .baseUrl(Objects.requireNonNull(vectorServiceUrl))
+    @LoadBalanced
+    public WebClient.Builder loadBalancedWebClientBuilder() {
+        return WebClient.builder();
+    }
+
+    @Bean
+    public WebClient vectorServiceClient(WebClient.Builder loadBalancedWebClientBuilder) {
+        return loadBalancedWebClientBuilder
+                .baseUrl(buildAgiBaseUrl())
                 .build();
     }
 
     @Bean
-    public WebClient webClient() {
-        return WebClient.builder()
-                .baseUrl(Objects.requireNonNull(agentServiceUrl))
+    public WebClient webClient(WebClient.Builder loadBalancedWebClientBuilder) {
+        return loadBalancedWebClientBuilder
+                .baseUrl(buildAgiBaseUrl())
                 .build();
+    }
+
+    private String buildAgiBaseUrl() {
+        return "http://" + Objects.requireNonNull(agiServiceName);
     }
 }
