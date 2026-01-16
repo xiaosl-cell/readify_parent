@@ -124,7 +124,9 @@ class Settings(BaseSettings):
     NACOS_HEARTBEAT_INTERVAL: int = int(os.getenv("NACOS_HEARTBEAT_INTERVAL", "5"))
     NACOS_CONFIG_DATA_ID: str = os.getenv("NACOS_CONFIG_DATA_ID", "")
     
-    # ????????RL
+    # Service discovery settings
+    READIFY_SERVER_SERVICE_NAME: str = os.getenv("READIFY_SERVER_SERVICE_NAME", "")
+    
     @property
     def DATABASE_URL(self) -> str:
         return (
