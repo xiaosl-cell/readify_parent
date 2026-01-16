@@ -4,18 +4,8 @@ import logging
 import random
 import socket
 from typing import Any, Dict, List, Optional
-
-# 第三方库导入
-from v2.nacos import (
-    ClientConfig,
-    DeregisterInstanceParam,
-    NacosException,
-    NacosNamingService,
-    RegisterInstanceParam,
-)
-from v2.nacos.naming.model.naming_param import ListInstanceParam  # type: ignore
-
-# 本地应用导入
+from v2.nacos import (ClientConfig, DeregisterInstanceParam, NacosException, NacosNamingService, RegisterInstanceParam)
+from v2.nacos.naming.model.naming_param import (ListInstanceParam, SubscribeServiceParam)
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -130,6 +120,7 @@ class NacosServiceDiscovery:
         self.naming_service: Optional[NacosNamingService] = None
         self._instance_cache: Dict[str, List[Dict[str, Any]]] = {}
         self._cache_lock = asyncio.Lock()
+        self._subscribed_services: set[str] = set()  # 已订阅的服务集合
     
     async def _get_naming_service(self) -> Optional[NacosNamingService]:
         """获取或创建Nacos命名服务实例"""
@@ -231,6 +222,9 @@ class NacosServiceDiscovery:
             async with self._cache_lock:
                 self._instance_cache[service_name] = instance_list
             
+            # 自动订阅服务变更（如果尚未订阅）
+            await self._subscribe_service(service_name, group)
+            
             logger.debug(
                 "Discovered %d instances for service %s (group=%s, healthy_only=%s)",
                 len(instance_list),
@@ -245,6 +239,81 @@ class NacosServiceDiscovery:
             # 返回缓存中的实例（如果有）
             async with self._cache_lock:
                 return self._instance_cache.get(service_name, [])
+    
+    async def _subscribe_service(self, service_name: str, group_name: str) -> None:
+        """
+        订阅服务实例变更，当服务实例变化时自动更新缓存
+        
+        Args:
+            service_name: 服务名称
+            group_name: 服务组名
+        """
+        # 检查是否已经订阅
+        service_key = f"{group_name}@@{service_name}"
+        if service_key in self._subscribed_services:
+            return
+        
+        naming_service = await self._get_naming_service()
+        if not naming_service:
+            return
+        
+        try:
+            # 定义订阅回调函数
+            async def on_instances_changed(instances: List[Any]) -> None:
+                """服务实例变更回调"""
+                instance_list = []
+                for instance in instances:
+                    if hasattr(instance, 'ip'):
+                        ip = instance.ip
+                        port = instance.port
+                        healthy = getattr(instance, 'healthy', True)
+                        metadata = getattr(instance, 'metadata', {})
+                    elif isinstance(instance, dict):
+                        ip = instance.get('ip', '')
+                        port = instance.get('port', 0)
+                        healthy = instance.get('healthy', True)
+                        metadata = instance.get('metadata', {})
+                    else:
+                        continue
+                    
+                    instance_list.append({
+                        "ip": ip,
+                        "port": port,
+                        "healthy": healthy,
+                        "metadata": metadata,
+                    })
+                
+                # 更新缓存
+                async with self._cache_lock:
+                    self._instance_cache[service_name] = instance_list
+                
+                logger.info(
+                    "服务实例变更通知: %s (group=%s), 实例数量: %d",
+                    service_name,
+                    group_name,
+                    len(instance_list)
+                )
+            
+            # 订阅服务
+            param = SubscribeServiceParam(
+                service_name=service_name,
+                group_name=group_name,
+                subscribe_callback=on_instances_changed,
+            )
+            await naming_service.subscribe(param)
+            self._subscribed_services.add(service_key)
+            logger.info(
+                "已订阅服务变更: %s (group=%s)",
+                service_name,
+                group_name
+            )
+        except Exception as exc:
+            logger.warning(
+                "订阅服务失败: %s (group=%s), 错误: %s",
+                service_name,
+                group_name,
+                exc
+            )
     
     async def select_one_instance(
         self,
