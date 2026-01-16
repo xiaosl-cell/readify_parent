@@ -3,7 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.api.v1 import file_router
 from app.api.v1 import api_router
+from app.core.config import settings
 from app.core.database import close_db_connection
+from app.core.nacos_client import start_nacos, stop_nacos
 import logging
 from contextlib import asynccontextmanager
 
@@ -17,14 +19,13 @@ logger = logging.getLogger(__name__)
 # 定义生命周期上下文管理器
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 启动时执行
-    logger.info("应用启动中，初始化资源...")
+    logger.info("Starting app, initializing resources...")
+    await start_nacos()
     yield
-    # 关闭时执行
-    logger.info("应用关闭中，释放资源...")
-    # 关闭数据库连接池
+    logger.info("Shutting down app, releasing resources...")
+    await stop_nacos()
     await close_db_connection()
-    logger.info("数据库连接池已关闭")
+    logger.info("Database connection pool closed")
 
 app = FastAPI(
     title="Readify AGI",
@@ -67,10 +68,10 @@ app.include_router(api_router, prefix="/api/v1")
 
 if __name__ == "__main__":
     import uvicorn
-    logger.info("正在启动服务器，端口 8090...")
+    logger.info("Starting server on port %s...", settings.SERVICE_PORT)
     uvicorn.run(
         app,
         host="0.0.0.0",
-        port=8090,
+        port=settings.SERVICE_PORT,
         log_level="info"
     )  

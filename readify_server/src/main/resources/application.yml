@@ -1,9 +1,27 @@
 spring:
+  application:
+    name: readify-server
+  config:
+    import:
+      - optional:nacos:${spring.application.name}.yaml?group=READIFY
+  cloud:
+    nacos:
+      username: nacos
+      password: nacos2025
+      discovery:
+        server-addr: localhost:8848
+        namespace: ca5b6af9-5336-42f7-b68c-515779f79a98
+        group: READIFY
+      config:
+        server-addr: localhost:8848
+        namespace: ca5b6af9-5336-42f7-b68c-515779f79a98
+        group: READIFY
+        file-extension: yaml
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/readify?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: root
-    password: 
+    password: xsl123456
   mvc:
     servlet:
       path: /api/v1
