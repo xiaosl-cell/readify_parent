@@ -1,11 +1,50 @@
 import aiohttp
 import time
 import traceback
+import logging
 from typing import Dict, Any, Optional
 from app.core.config import settings
+from app.core.nacos_client import get_service_discovery
+
+logger = logging.getLogger(__name__)
 
 class CallbackService:
     """回调服务，用于通知第三方接口处理结果"""
+    
+    async def _get_callback_url(self) -> Optional[str]:
+        """
+        通过Nacos服务发现获取回调URL
+        
+        Returns:
+            回调URL，如果Nacos未启用或服务发现失败则返回None
+        """
+        if not settings.NACOS_ENABLED:
+            logger.warning("Nacos未启用，无法获取回调URL")
+            return None
+        
+        try:
+            service_discovery = await get_service_discovery()
+            if not service_discovery:
+                logger.warning("无法创建Nacos服务发现客户端")
+                return None
+            
+            # 从Nacos获取readify-server服务地址
+            callback_url = await service_discovery.get_service_url(
+                service_name=settings.READIFY_SERVER_SERVICE_NAME,
+                path="/files/vectorized",
+                group_name=settings.NACOS_GROUP,
+                use_https=False,
+                strategy="random"
+            )
+            if callback_url:
+                logger.debug(f"使用Nacos服务发现获取回调URL: {callback_url}")
+                return callback_url
+            else:
+                logger.warning("Nacos服务发现未找到readify-server实例")
+                return None
+        except Exception as e:
+            logger.error(f"Nacos服务发现失败: {e}")
+            return None
     
     async def notify_file_processed(
         self, 
@@ -26,17 +65,19 @@ class CallbackService:
         Returns:
             bool: 回调是否成功
         """
-        # 获取回调配置
-        callback_url = getattr(settings, "FILE_PROCESS_CALLBACK_URL", "")
+        # 通过Nacos服务发现获取回调URL
+        callback_url = await self._get_callback_url()
         api_key = getattr(settings, "FILE_PROCESS_CALLBACK_API_KEY", "")
         
         if not callback_url:
-            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 警告：未配置回调URL，跳过回调")
-            return False
+            error_msg = "无法通过Nacos服务发现获取回调URL"
+            logger.error(error_msg)
+            raise RuntimeError(error_msg)
             
         if not api_key:
-            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 警告：未配置回调API Key，跳过回调")
-            return False
+            error_msg = "未配置回调API Key"
+            logger.error(error_msg)
+            raise ValueError(error_msg)
             
         # 准备回调数据
         payload = {
@@ -57,7 +98,7 @@ class CallbackService:
         }
             
         try:
-            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 开始回调通知，URL: {callback_url}")
+            logger.info(f"开始回调通知，URL: {callback_url}")
             async with aiohttp.ClientSession() as session:
                 async with session.post(
                     callback_url,
@@ -67,12 +108,12 @@ class CallbackService:
                 ) as response:
                     if response.status == 200:
                         response_text = await response.text()
-                        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 回调成功，响应: {response_text}")
+                        logger.info(f"回调成功，响应: {response_text}")
                         return True
                     else:
-                        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 回调失败，状态码: {response.status}")
+                        logger.warning(f"回调失败，状态码: {response.status}")
                         return False
         except Exception as e:
-            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 回调异常: {str(e)}")
-            print(traceback.format_exc())
+            logger.error(f"回调异常: {str(e)}")
+            logger.error(traceback.format_exc())
             return False 
