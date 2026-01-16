@@ -47,8 +47,7 @@ public class ProjectFileServiceImpl implements ProjectFileService {
                 file.getOriginalFilename(),
                 file.getContentType(),
                 file.getSize(),
-                getInputStream(file)
-        );
+                getInputStream(file));
 
         // 创建项目文件关联
         ProjectFile projectFile = ProjectFile.builder()
@@ -67,8 +66,7 @@ public class ProjectFileServiceImpl implements ProjectFileService {
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe(
                         response -> log.info("文件处理请求发送成功：fileId={}", uploadedFile.getId()),
-                        error -> log.error("文件处理请求发送失败：fileId={}, error={}", uploadedFile.getId(), error.getMessage())
-                );
+                        error -> log.error("文件处理请求发送失败：fileId={}, error={}", uploadedFile.getId(), error.getMessage()));
 
         return uploadedFile;
     }
@@ -76,7 +74,7 @@ public class ProjectFileServiceImpl implements ProjectFileService {
     private Mono<Void> sendProcessRequest(Long fileId) {
         return vectorServiceClient.post()
                 .uri("/api/v1/files/{fileId}/process", fileId)
-                .contentType(MediaType.APPLICATION_JSON)
+                .contentType(java.util.Objects.requireNonNull(MediaType.APPLICATION_JSON))
                 .retrieve()
                 .bodyToMono(Void.class)
                 .doOnError(error -> log.error("发送文件处理请求失败：fileId={}, error={}", fileId, error.getMessage()));
@@ -99,4 +97,4 @@ public class ProjectFileServiceImpl implements ProjectFileService {
         }
         return fileService.getFilesByIds(fileIds);
     }
-} 
+}

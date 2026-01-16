@@ -3,7 +3,6 @@ package com.readify.server.infrastructure.persistence.repository;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.readify.server.domain.file.model.File;
 import com.readify.server.domain.file.repository.FileRepository;
-import com.readify.server.domain.project.model.ProjectFile;
 import com.readify.server.infrastructure.persistence.converter.FileConverter;
 import com.readify.server.infrastructure.persistence.entity.FileEntity;
 import com.readify.server.infrastructure.persistence.entity.ProjectFileEntity;
@@ -53,8 +52,7 @@ public class FileRepositoryImpl implements FileRepository {
         List<ProjectFileEntity> projectFileEntities = projectFileMapper.selectList(
                 new LambdaQueryWrapper<ProjectFileEntity>()
                         .eq(ProjectFileEntity::getFileId, id)
-                        .last("LIMIT 1")
-        );
+                        .last("LIMIT 1"));
         if (projectFileEntities.isEmpty()) {
             return Optional.of(file);
         }
@@ -76,8 +74,7 @@ public class FileRepositoryImpl implements FileRepository {
         FileEntity entity = fileMapper.selectOne(
                 new LambdaQueryWrapper<FileEntity>()
                         .eq(FileEntity::getMd5, md5)
-                        .last("LIMIT 1")
-        );
+                        .last("LIMIT 1"));
         return Optional.ofNullable(entity)
                 .map(fileConverter::toDomain);
     }
@@ -158,10 +155,9 @@ public class FileRepositoryImpl implements FileRepository {
     public List<File> findNonVectorizedFiles() {
         List<FileEntity> entities = fileMapper.selectList(
                 new LambdaQueryWrapper<FileEntity>()
-                        .eq(FileEntity::getVectorized, false)
-        );
+                        .eq(FileEntity::getVectorized, false));
         return entities.stream()
                 .map(fileConverter::toDomain)
                 .collect(Collectors.toList());
     }
-} 
+}

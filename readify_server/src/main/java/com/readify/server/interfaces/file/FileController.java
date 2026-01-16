@@ -12,7 +12,6 @@ import com.readify.server.websocket.message.WebSocketMessage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -52,14 +51,14 @@ public class FileController {
             @Parameter(description = "文件ID") @PathVariable Long fileId,
             HttpServletResponse response) throws IOException {
         File file = fileService.getFileInfo(fileId);
-        
+
         response.setContentType(file.getMimeType());
         response.setContentLength(Math.toIntExact(file.getSize()));
-        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" + 
+        response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" +
                 URLEncoder.encode(file.getOriginalName(), StandardCharsets.UTF_8));
-        
+
         try (InputStream inputStream = fileStorage.retrieve(file.getStorageName());
-             OutputStream outputStream = response.getOutputStream()) {
+                OutputStream outputStream = response.getOutputStream()) {
             // 使用缓冲区复制流
             byte[] buffer = new byte[4096];
             int bytesRead;
@@ -67,7 +66,7 @@ public class FileController {
                 outputStream.write(buffer, 0, bytesRead);
             }
             outputStream.flush();
-        }catch (Exception e) {
+        } catch (Exception e) {
             log.warn(e.getMessage());
         }
     }
@@ -84,7 +83,8 @@ public class FileController {
     @Operation(summary = "向量化完成通知")
     public Result<Void> vectorizedCompleted(@RequestBody VectorizedCallbackReq req) {
         log.info("收到向量化完成通知：{}", req);
-        if (!Boolean.TRUE.equals(req.getSuccess())) return Result.success("接收成功");
+        if (!Boolean.TRUE.equals(req.getSuccess()))
+            return Result.success("接收成功");
         File file = fileService.getFileInfo(req.getFileId());
 
         // 获取项目文件列表
@@ -92,17 +92,16 @@ public class FileController {
         List<FileVO> fileVOs = projectFiles.stream()
                 .map(FileVO::from)
                 .collect(Collectors.toList());
-        
+
         // 发送WebSocket通知
         if (webSocketSessionManager.getUserSessionId(file.getUserId()) != null) {
             WebSocketMessage<List<FileVO>> message = WebSocketMessage.create(
-                "projectFiles",
-                fileVOs
-            );
+                    "projectFiles",
+                    fileVOs);
             webSocketSessionManager.sendMessageToUser(file.getUserId(), message);
             log.info("已发送WebSocket通知给用户：{}", file.getUserId());
         }
-        
+
         return Result.success();
     }
 
@@ -113,4 +112,4 @@ public class FileController {
             throw new RuntimeException("Failed to get input stream from file", e);
         }
     }
-} 
+}
