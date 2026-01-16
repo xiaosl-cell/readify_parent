@@ -1,4 +1,5 @@
 @echo off
+chcp 65001
 echo ===================================
 echo Readify Server Startup Script
 echo ===================================
@@ -18,6 +19,6 @@ call mvn package -DskipTests
 echo [3/3] Starting Readify Server...
 echo ===================================
 :: 运行Spring Boot应用
-java -jar target\readify-0.0.1-SNAPSHOT.jar
+java -Dfile.encoding=UTF-8 -jar target\readify-0.0.1-SNAPSHOT.jar
 
 pause
