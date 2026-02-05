@@ -17,10 +17,6 @@ public class SendMessageReq {
      */
     private Long mindMapId = null;
     /**
-     * 厂商
-     */
-    private String vendor;
-    /**
      * 用户输入
      */
     private String query;

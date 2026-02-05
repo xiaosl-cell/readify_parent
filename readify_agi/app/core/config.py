@@ -87,22 +87,15 @@ class Settings(BaseSettings):
     # LlamaParse???
     LLAMA_PARSE_API_KEY: str
     
-    # OpenAI???
-    OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    OPENAI_API_BASE: str = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
-    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
+    # LLM配置 - 统一的模型配置
+    LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")
+    LLM_API_BASE: str = os.getenv("LLM_API_BASE", "https://api.openai.com/v1")
+    LLM_MODEL_NAME: str = os.getenv("LLM_MODEL_NAME", "gpt-4o")
 
-    # DeepSeek
-    DEEPSEEK_API_KEY: str = os.getenv("DEEPSEEK_API_KEY", "")
-    DEEPSEEK_API_BASE: str = os.getenv("DEEPSEEK_API_BASE", "")
-    
-    # OpenAI-??????
-    OPENAI_API_KEY_CHINA: str = os.getenv("OPENAI_API_KEY_CHINA", "")
-    OPENAI_API_BASE_CHINA: str = os.getenv("OPENAI_API_BASE_CHINA", "")
-    
-    # Qwen
-    QWEN_API_KEY: str = os.getenv("QWEN_API_KEY", "")
-    QWEN_API_BASE: str = os.getenv("QWEN_API_BASE", "")
+    # Embedding模型配置
+    EMBEDDING_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
+    EMBEDDING_API_BASE: str = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
+    EMBEDDING_MODEL: str = "text-embedding-3-small"
 
     # ??????
     FILE_PROCESS_CALLBACK_URL: str = os.getenv("FILE_PROCESS_CALLBACK_URL", "")

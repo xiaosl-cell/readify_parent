@@ -71,48 +71,6 @@
                   </template>
                 </el-option>
               </el-select>
-              <el-select v-model="vendor" size="small" class="model-select"
-                 style="--el-border-radius-base: 40px; border-radius: 40px; background-color: #ffffff; width: 240px;"
-              >
-                <template #prefix>
-                  <el-icon v-if="vendor === 'OpenAI'"><Lightning /></el-icon>
-                  <el-icon v-else-if="vendor === 'OpenAI-China'"><Connection /></el-icon>
-                  <el-icon v-else-if="vendor === 'DeepSeek'"><Connection /></el-icon>
-                  <el-icon v-else-if="vendor === 'Qwen'"><Connection /></el-icon>
-                </template>
-                <el-option label="OpenAI" value="OpenAI">
-                  <template #default>
-                    <div style="display: flex; align-items: center; min-width: 90px;">
-                      <el-icon><Lightning /></el-icon>
-                      <span style="margin-left: 5px; font-size: 12px; white-space: nowrap;">OpenAI</span>
-                    </div>
-                  </template>
-                </el-option>
-                <el-option label="OpenAI-China" value="OpenAI-China">
-                  <template #default>
-                    <div style="display: flex; align-items: center; min-width: 90px;">
-                      <el-icon><Connection /></el-icon>
-                      <span style="margin-left: 5px; font-size: 12px; white-space: nowrap;">OpenAI-China</span>
-                    </div>
-                  </template>
-                </el-option>
-                <el-option label="DeepSeek" value="DeepSeek">
-                  <template #default>
-                    <div style="display: flex; align-items: center; min-width: 90px;">
-                      <el-icon><Connection /></el-icon>
-                      <span style="margin-left: 5px; font-size: 12px; white-space: nowrap;">DeepSeek</span>
-                    </div>
-                  </template>
-                </el-option>
-                <el-option label="Qwen" value="Qwen">
-                  <template #default>
-                    <div style="display: flex; align-items: center; min-width: 90px;">
-                      <el-icon><Connection /></el-icon>
-                      <span style="margin-left: 5px; font-size: 12px; white-space: nowrap;">Qwen</span>
-                    </div>
-                  </template>
-                </el-option>
-              </el-select>
             </div>
             <el-button 
               class="send-btn"
@@ -194,7 +152,7 @@
 
 <script lang="ts" setup>
 import { ref, computed, onMounted, onBeforeUnmount, defineProps, defineEmits, watch, nextTick } from 'vue'
-import { Close, Edit, EditPen, Lightning, Connection, Loading, Check, ArrowRightBold, ArrowLeftBold, ChatDotRound, Minus } from '@element-plus/icons-vue'
+import { Close, Edit, EditPen, Loading, Check, Minus } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { marked } from 'marked'
 import { h } from 'vue'
@@ -218,7 +176,7 @@ const emit = defineEmits<{
   (e: 'close'): void
   (e: 'update:visible', value: boolean): void
   (e: 'save', content: string): void
-  (e: 'send-input', input: string, mode: string, vendor: string): void
+  (e: 'send-input', input: string, mode: string): void
   (e: 'refresh-mindmap'): void
 }>()
 
@@ -233,7 +191,6 @@ const inputContent = ref('')
 
 // 选择框的响应式变量
 const chatMode = ref('note') // 固定笔记模式
-const vendor = ref('OpenAI') // 默认OpenAI模型
 
 // 思考过程抽屉相关状态
 const drawerVisible = ref(false)
@@ -273,8 +230,8 @@ const handleSendInput = () => {
   isMinimized.value = false
   drawerVisible.value = true
   
-  // 发送输入内容给父组件，同时传递模式和模型
-  emit('send-input', inputContent.value, chatMode.value, vendor.value)
+  // 发送输入内容给父组件，同时传递模式
+  emit('send-input', inputContent.value, chatMode.value)
   
   // 清空输入框
   inputContent.value = ''
@@ -442,13 +399,27 @@ const toggleEditMode = () => {
 // 渲染思维导图
 const renderMarkmap = async () => {
   if (!svgContainer.value) return
-  
+
+  // 检查内容是否为空
+  if (!props.content || props.content.trim() === '') {
+    return
+  }
+
+  // 检查容器尺寸是否有效
+  const containerWidth = svgContainer.value.offsetWidth
+  const containerHeight = svgContainer.value.offsetHeight
+  if (!containerWidth || !containerHeight || containerWidth <= 0 || containerHeight <= 0) {
+    // 容器尺寸无效，延迟重试
+    setTimeout(() => renderMarkmap(), 100)
+    return
+  }
+
   try {
     markmapLoading.value = true
-    
+
     // 清空容器
     svgContainer.value.innerHTML = ''
-    
+
     // 创建新的脚本元素以动态加载库
     const createScript = (src: string): Promise<void> => {
       return new Promise((resolve, reject) => {
@@ -459,7 +430,7 @@ const renderMarkmap = async () => {
         document.head.appendChild(script)
       })
     }
-    
+
     // 检查是否已经加载了必要的库
     if (!window.d3 || !window.markmap) {
       console.log('Loading required libraries...')
@@ -468,11 +439,9 @@ const renderMarkmap = async () => {
       await createScript('https://cdn.jsdelivr.net/npm/markmap-view')
       await createScript('https://cdn.jsdelivr.net/npm/markmap-lib')
     }
-    
+
     // 创建SVG元素
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
-    // 获取容器高度 - 减去输入框高度
-    const containerHeight = svgContainer.value.offsetHeight
     svg.setAttribute('style', `width: 100%; height: 100%; min-height: ${containerHeight}px;`)
     svgContainer.value.appendChild(svg)
     

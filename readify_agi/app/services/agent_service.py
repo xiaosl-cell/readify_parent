@@ -17,33 +17,13 @@ from app.repositories.file_repository import FileRepository
 from app.repositories.project_repository import ProjectRepository
 
 
-def get_llm_config(vendor: str):
-    if vendor == "OpenAI":
-        return {
-            "model_name": "gpt-4o",
-            "api_key": settings.OPENAI_API_KEY,
-            "base_url": settings.OPENAI_API_BASE
-        }
-    elif vendor == "DeepSeek":
-        return {
-            "model_name": "deepseek-reasoner",
-            "api_key": settings.DEEPSEEK_API_KEY,
-            "base_url": settings.DEEPSEEK_API_BASE
-        }
-    elif vendor == "Qwen":
-        return {
-            "model_name": "qwen3-235b-a22b",
-            "api_key": settings.QWEN_API_KEY,
-            "base_url": settings.QWEN_API_BASE
-        }
-    elif vendor == "OpenAI-China":
-        return {
-            "model_name": "gpt-4o",
-            "api_key": settings.OPENAI_API_KEY_CHINA,
-            "base_url": settings.OPENAI_API_BASE_CHINA
-        }
-    else:
-        raise ValueError(f"不支持的厂商: {vendor}")
+def get_llm_config():
+    """获取LLM配置，使用统一的配置项"""
+    return {
+        "model_name": settings.LLM_MODEL_NAME,
+        "api_key": settings.LLM_API_KEY,
+        "base_url": settings.LLM_API_BASE
+    }
 
 
 class AgentService:
@@ -56,24 +36,21 @@ class AgentService:
         self,
         project_id: int,
         context: Dict[str, Any] = None,
-        vendor: str = "OpenAI",
         temperature: float = 0.7,
         agent_name: str = "Agent",
         description: str = "基础智能体服务，提供智能对话和工具调用能力",
     ):
         """
         初始化Agent服务
-        
+
         Args:
             project_id: 项目ID
-            vendor: 厂商名称
             temperature: 温度参数
             agent_name: 智能体名称
             description: 智能体描述
             context: 上下文信息，包含项目ID、思维导图ID等数据的JSON对象
         """
         self.project_id = project_id
-        self.vendor = vendor
         self.temperature = temperature
         self.agent_name = agent_name
         self.description = description
@@ -128,7 +105,7 @@ class AgentService:
         Returns:
             ChatOpenAI: 语言模型实例
         """
-        config = get_llm_config(self.vendor)
+        config = get_llm_config()
         return ChatOpenAI(
             base_url=config["base_url"],
             api_key=config["api_key"],

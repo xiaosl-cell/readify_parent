@@ -202,8 +202,8 @@ class DocumentService:
             chat = ChatOpenAI(
                 model="gpt-4o-mini",
                 temperature=0.5,
-                api_key=settings.OPENAI_API_KEY_CHINA,
-                base_url=settings.OPENAI_API_BASE_CHINA,
+                api_key=settings.LLM_API_KEY,
+                base_url=settings.LLM_API_BASE,
             )
             
             # 创建聊天提示模板

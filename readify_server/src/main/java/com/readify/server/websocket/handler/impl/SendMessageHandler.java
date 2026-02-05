@@ -59,8 +59,7 @@ public class SendMessageHandler implements WebSocketMessageHandler<SendMessageRe
                         .path("/api/v1/agent/stream")
                         .queryParam("query", query)
                         .queryParam("project_id", projectId)
-                        .queryParam("task_type", req.getTaskType())
-                        .queryParam("vendor", req.getVendor());
+                        .queryParam("task_type", req.getTaskType());
                     
                     // 当mindMapId不为null时添加到查询参数
                     if (req.getMindMapId() != null) {

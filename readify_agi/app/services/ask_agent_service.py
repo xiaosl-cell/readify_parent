@@ -20,7 +20,6 @@ class AskAgentService(AgentService):
     def __init__(
         self,
         project_id: int,
-        vendor: str,
         context: Dict[str, Any] = None,
         temperature: float = 0.7,
         agent_name: str = AgentNames.QUESTIONER,
@@ -28,15 +27,14 @@ class AskAgentService(AgentService):
     ):
         """
         初始化问答Agent服务
-        
+
         Args:
             project_id: 工程id
-            vendor: 厂商
             temperature: 温度参数
             description: 智能体描述
             context: 其他信息
         """
-        super().__init__(project_id, context, vendor, temperature, agent_name, description)
+        super().__init__(project_id, context, temperature, agent_name, description)
         
         # 初始化特定于问答Agent的仓库
         self.project_file_repo = ProjectFileRepository()

@@ -18,9 +18,9 @@ class VectorStoreService:
         初始化向量存储服务
         """
         self.embeddings = OpenAIEmbeddings(
-            model=settings.OPENAI_EMBEDDING_MODEL,
-            api_key=settings.OPENAI_API_KEY_CHINA,
-            base_url=settings.OPENAI_API_BASE_CHINA
+            model=settings.EMBEDDING_MODEL,
+            api_key=settings.EMBEDDING_API_KEY,
+            base_url=settings.EMBEDDING_API_BASE
         )
 
         self.text_splitter = RecursiveCharacterTextSplitter(

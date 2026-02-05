@@ -712,11 +712,11 @@ console.log('Hello, World!');
 `
 
 // 处理笔记输入框发送的内容
-const handleNoteInput = (input: string, mode: string, vendor: string) => {
+const handleNoteInput = (input: string, mode: string) => {
   if (!input.trim()) return
-  
+
   // 在这里处理笔记输入
-  console.log('收到笔记输入:', input, '模式:', mode, '模型:', vendor)
+  console.log('收到笔记输入:', input, '模式:', mode)
   
   // 检查WebSocket状态
   if (!wsManager.value || !wsManager.value.ws || wsManager.value.ws.readyState !== WebSocket.OPEN) {
@@ -732,7 +732,6 @@ const handleNoteInput = (input: string, mode: string, vendor: string) => {
         query: input,
         projectId: actualProjectId.value.toString(),
         taskType: 'note', // 对note设置为note类型
-        vendor: vendor,
         mindMapId: currentNote.value.id.toString() // 添加思维导图ID
       },
       timestamp: Date.now()

@@ -17,30 +17,28 @@ router = APIRouter()
 # 创建依赖项函数，用于获取协调Agent服务
 async def get_coordinator_service(
     project_id: int = Query(..., description="工程ID"),
-    vendor: str = Query(..., description="厂商"),
     task_type:str = Query(..., description="任务类型"),
     context: str = Query("{}", description="其他信息"),
 ) -> CoordinatorAgentService:
     """
     获取协调Agent服务实例
-    
+
     Args:
         project_id: 项目ID
-        vendor: 模型厂商
         task_type: 任务类型 ask/note
         context: 其他补充信息，uri编码的json字符串
-        
+
     Returns:
         CoordinatorAgentService: 协调Agent服务实例
     """
     context_dict = json.loads(urllib.parse.unquote(context))
-    coordinator = CoordinatorAgentService(project_id=project_id, vendor=vendor, task_type=task_type, context=context_dict)
-    
+    coordinator = CoordinatorAgentService(project_id=project_id, task_type=task_type, context=context_dict)
+
     # 注册专业智能体
-    ask_agent = AskAgentService(project_id=project_id, vendor=vendor, context=context_dict)
+    ask_agent = AskAgentService(project_id=project_id, context=context_dict)
     coordinator.register_agent(ask_agent.agent_name, ask_agent)
 
-    note_agent = NoteAgentService(project_id=project_id, vendor=vendor, context=context_dict)
+    note_agent = NoteAgentService(project_id=project_id, context=context_dict)
     coordinator.register_agent(note_agent.agent_name, note_agent)
     
     # 初始化服务

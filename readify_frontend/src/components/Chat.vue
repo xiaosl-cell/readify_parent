@@ -49,46 +49,6 @@
               </template>
             </el-option>
           </el-select>
-          <el-select v-model="vendor" size="small" class="model-select"
-             style="--el-border-radius-base: 40px; border-radius: 40px; background-color: #ffffff; width: 120px;"
-          >
-            <template #prefix>
-              <el-icon v-if="vendor === 'OpenAI'"><Lightning /></el-icon>
-              <el-icon v-else-if="vendor === 'DeepSeek'"><Connection /></el-icon>
-            </template>
-            <el-option label="OpenAI" value="OpenAI">
-              <template #default>
-                <div style="display: flex; align-items: center; min-width: 90px;">
-                  <el-icon><Lightning /></el-icon>
-                  <span style="margin-left: 5px; font-size: 12px; white-space: nowrap;">OpenAI</span>
-                </div>
-              </template>
-            </el-option>
-            <el-option label="OpenAI-China" value="OpenAI-China">
-              <template #default>
-                <div style="display: flex; align-items: center; min-width: 90px;">
-                  <el-icon><Connection /></el-icon>
-                  <span style="margin-left: 5px; font-size: 12px; white-space: nowrap;">OpenAI-China</span>
-                </div>
-              </template>
-            </el-option>
-            <el-option label="DeepSeek" value="DeepSeek">
-              <template #default>
-                <div style="display: flex; align-items: center; min-width: 90px;">
-                  <el-icon><Connection /></el-icon>
-                  <span style="margin-left: 5px; font-size: 12px; white-space: nowrap;">DeepSeek</span>
-                </div>
-              </template>
-            </el-option>
-            <el-option label="Qwen" value="Qwen">
-              <template #default>
-                <div style="display: flex; align-items: center; min-width: 90px;">
-                  <el-icon><Connection /></el-icon>
-                  <span style="margin-left: 5px; font-size: 12px; white-space: nowrap;">Qwen</span>
-                </div>
-              </template>
-            </el-option>
-          </el-select>
         </div>
         <el-button 
           class="send-btn"
@@ -106,7 +66,7 @@
 
 <script lang="ts" setup>
 import { ref, nextTick, defineProps, defineEmits, computed, watch, onMounted, inject, onBeforeUnmount } from 'vue'
-import { ArrowDown, ArrowUp, Loading, ChatRound, EditPen, Lightning, Connection } from '@element-plus/icons-vue'
+import { ArrowDown, ArrowUp, Loading, ChatRound } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { getToken } from '@/utils/auth'  // 导入getToken函数
 import { getProjectConversations } from '@/api/chat'
@@ -182,7 +142,6 @@ const loadedConversations = ref<any[]>([])
 
 // 添加选择框的响应式变量
 const chatMode = ref('ask') // 默认问答模式
-const vendor = ref('OpenAI') // 默认OpenAI模型
 
 // 存储WebSocket实例
 const wsInstance = ref<WebSocket | null>(null)
@@ -980,14 +939,13 @@ const forceRenderMessages = () => {
 const handleSend = async () => {
   try {
     // 记录更详细的projectId信息
-    console.log('[Chat.handleSend] - 被调用', { 
+    console.log('[Chat.handleSend] - 被调用', {
       inputMessage: inputMessage.value,
       isSending: isSending.value,
       hasContent: !!inputMessage.value.trim(),
       injectedProjectId: injectedProjectId.value,
       localProjectId: localProjectId.value,
-      chatMode: chatMode.value,
-      vendor: vendor.value
+      chatMode: chatMode.value
     })
     
     if (!inputMessage.value.trim()) {
@@ -1039,8 +997,7 @@ const handleSend = async () => {
         data: {
           query: question,
           projectId: localProjectId.value.toString(),
-          taskType: chatMode.value,
-          vendor: vendor.value
+          taskType: chatMode.value
         },
         timestamp: Date.now()
       }
@@ -1363,7 +1320,6 @@ const directSendWebSocketMessage = (message: string) => {
           query: message,
           projectId: localProjectId.value.toString(),
           taskType: chatMode.value,
-          vendor: vendor.value,
           timestamp: Date.now()
         },
         id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,

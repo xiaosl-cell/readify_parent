@@ -17,7 +17,6 @@ class CoordinatorAgentService(AgentService):
     def __init__(
         self,
         project_id: int,
-        vendor: str,
         context: Dict[str, Any] = None,
         task_type: str = "ask",
         temperature: float = 0.7,
@@ -26,14 +25,14 @@ class CoordinatorAgentService(AgentService):
     ):
         """
         初始化协调Agent服务
-        
+
         Args:
             project_id: 项目ID
             temperature: 温度参数
             agent_name: 智能体名称
             description: 智能体描述
         """
-        super().__init__(project_id, context, vendor, temperature, agent_name, description)
+        super().__init__(project_id, context, temperature, agent_name, description)
         self.task_type = task_type
         # 注册的专业Agent
         self.specialized_agents: Dict[str, AgentService] = {}
