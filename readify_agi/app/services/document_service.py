@@ -198,9 +198,9 @@ class DocumentService:
             print(f"使用默认提示词模板: {prompt_template}")
         
         try:
-            # 使用Langchain调用模型
+            # 使用Langchain调用模型，使用配置中的统一 LLM 模型名称
             chat = ChatOpenAI(
-                model="gpt-4o-mini",
+                model=settings.LLM_MODEL_NAME,
                 temperature=0.5,
                 api_key=settings.LLM_API_KEY,
                 base_url=settings.LLM_API_BASE,

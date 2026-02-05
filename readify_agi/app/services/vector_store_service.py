@@ -1,188 +1,177 @@
-from typing import List, Dict, Any
+﻿from typing import List, Dict, Any, Optional
+import asyncio
+import re
 
-import chromadb
 from dotenv import load_dotenv
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_chroma import Chroma
 from langchain_openai import OpenAIEmbeddings
+from pymilvus import (
+    Collection,
+    CollectionSchema,
+    DataType,
+    FieldSchema,
+    connections,
+    utility,
+)
 
 from app.core.config import settings
 
-# 加载环境变量
 load_dotenv()
 
 
 class VectorStoreService:
-    def __init__(self):
-        """
-        初始化向量存储服务
-        """
+    def __init__(self) -> None:
         self.embeddings = OpenAIEmbeddings(
             model=settings.EMBEDDING_MODEL,
             api_key=settings.EMBEDDING_API_KEY,
-            base_url=settings.EMBEDDING_API_BASE
+            base_url=settings.EMBEDDING_API_BASE,
+            # 禁用 token 级别的长度检查，直接使用文本字符串
+            # 因为我们已经用 text_splitter 处理了文本分割
+            # 这样可以避免 langchain 将文本转换为 token IDs（Qwen API 不支持）
+            check_embedding_ctx_length=False,
         )
-
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=300,
             chunk_overlap=100,
             length_function=len,
-            add_start_index=True
+            add_start_index=True,
         )
+        self._connect()
 
-        # 初始化 ChromaDB 客户端（使用本地持久化存储）
-        self.client = chromadb.PersistentClient(
-            path=settings.VECTOR_STORE_DIR
-        )
+    def _connect(self) -> None:
+        if connections.has_connection("default"):
+            return
+        connection_args = {
+            "host": settings.MILVUS_HOST,
+            "port": settings.MILVUS_PORT,
+            "db_name": settings.MILVUS_DB_NAME,
+        }
+        if settings.MILVUS_USER:
+            connection_args["user"] = settings.MILVUS_USER
+        if settings.MILVUS_PASSWORD:
+            connection_args["password"] = settings.MILVUS_PASSWORD
+        connections.connect(alias="default", **connection_args)
 
-    async def vectorize_text(
-        self,
-        text: str,
-        collection_name: str
-    ) -> None:
-        """
-        将文本向量化并存储
+    def _get_or_create_collection(self, collection_name: str, dim: int) -> Collection:
+        # Milvus collection 名称只能包含字母、数字和下划线，需要规范化
+        # 将连字符和其他非法字符替换为下划线
+        collection_name = collection_name.replace("-", "_").replace(".", "_")
+        # 移除其他非法字符，只保留字母、数字和下划线
+        collection_name = re.sub(r'[^a-zA-Z0-9_]', '_', collection_name)
         
-        Args:
-            text: 要向量化的文本
-            collection_name: 集合名称
-            
-        Returns:
-            Chroma: 向量数据库实例
-        """
-        # 分割文本
+        if utility.has_collection(collection_name):
+            return Collection(collection_name)
+
+        fields = [
+            FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
+            FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=dim),
+            FieldSchema(name="content", dtype=DataType.VARCHAR, max_length=4096),
+        ]
+        schema = CollectionSchema(fields, description="readify vectors")
+        collection = Collection(collection_name, schema)
+        index_params = {
+            "metric_type": "L2",
+            "index_type": "IVF_FLAT",
+            "params": {"nlist": 1024},
+        }
+        collection.create_index(field_name="embedding", index_params=index_params)
+        return collection
+
+    async def vectorize_text(self, text: str, collection_name: str) -> None:
         texts = self.text_splitter.split_text(text)
-        
-        # 获取或创建集合
-        collection = self.client.get_or_create_collection(collection_name)
-        
-        # 生成嵌入向量
-        embeddings = self.embeddings.embed_documents(texts)
-        
-        # 生成文档ID
-        ids = [f"doc_{i}" for i in range(len(texts))]
-        
-        # 添加文档到集合
-        collection.add(
-            documents=texts,
-            embeddings=embeddings,
-            ids=ids
+        if not texts:
+            return
+        await self._insert_texts(texts, collection_name)
+
+    async def batch_vectorize_texts(self, texts: List[str], collection_name: str) -> None:
+        all_texts: List[str] = []
+        for text in texts:
+            all_texts.extend(self.text_splitter.split_text(text))
+        if not all_texts:
+            return
+        await self._insert_texts(all_texts, collection_name)
+
+    async def _insert_texts(self, texts: List[str], collection_name: str) -> None:
+        try:
+            embeddings = await self.embeddings.aembed_documents(texts)
+        except AttributeError:
+            embeddings = await asyncio.to_thread(self.embeddings.embed_documents, texts)
+        if not embeddings:
+            return
+
+        collection = await asyncio.to_thread(
+            self._get_or_create_collection,
+            collection_name,
+            len(embeddings[0]),
         )
 
-
-    async def batch_vectorize_texts(
-        self,
-        texts: List[str],
-        collection_name: str
-    ) -> None:
-        """
-        批量向量化多个文本
-        
-        Args:
-            texts: 文本列表
-            collection_name: 集合名称
-            
-        Returns:
-            Chroma: 向量数据库实例
-        """
-        # 分割所有文本
-        all_texts = []
-        for text in texts:
-            chunks = self.text_splitter.split_text(text)
-            all_texts.extend(chunks)
-            
-        # 获取或创建集合
-        collection = self.client.get_or_create_collection(collection_name)
-        
-        # 生成文档ID
-        ids = [f"doc_{i}" for i in range(len(all_texts))]
-        
-        # 批量添加文档到集合（分批处理以避免超过最大批次限制）
         batch_size = 500
-        total_docs = len(all_texts)
-        
+        total_docs = len(texts)
         for i in range(0, total_docs, batch_size):
             end_idx = min(i + batch_size, total_docs)
-            batch_texts = all_texts[i:end_idx]
-            
-            # 生成当前批次的嵌入向量
-            batch_embeddings = self.embeddings.embed_documents(batch_texts)
-            batch_ids = ids[i:end_idx]
-            
-            collection.add(
-                documents=batch_texts,
-                embeddings=batch_embeddings,
-                ids=batch_ids
+            batch_texts = texts[i:end_idx]
+            batch_embeddings = embeddings[i:end_idx]
+            await asyncio.to_thread(collection.insert, [batch_embeddings, batch_texts])
+            print(
+                f"[VectorStore] Inserted batch {i // batch_size + 1}"
+                f"/{(total_docs + batch_size - 1) // batch_size}"
+                f" (docs {i} - {end_idx})"
             )
-            print(f"[向量检索] 已添加批次 {i // batch_size + 1}/{(total_docs + batch_size - 1) // batch_size} (文档 {i} - {end_idx})")
-
+        await asyncio.to_thread(collection.flush)
 
     async def search_similar_texts(
         self,
         query_text: str,
         collection_name: str,
-        top_k: int = 5
+        top_k: int = 5,
     ) -> List[Dict[str, Any]]:
-        """
-        在指定集合中搜索相似文本
+        # Milvus collection 名称只能包含字母、数字和下划线，需要规范化
+        collection_name = collection_name.replace("-", "_").replace(".", "_")
+        collection_name = re.sub(r'[^a-zA-Z0-9_]', '_', collection_name)
         
-        Args:
-            query_text: 查询文本
-            collection_name: 集合名称
-            top_k: 返回结果数量
-            
-        Returns:
-            List[Dict[str, Any]]: 搜索结果列表
-        """
-        print(f"[向量检索] 开始检索，集合：{collection_name}，查询：{query_text[:50]}...")
-        
-        try:
-            # 获取集合
-            collection = self.client.get_collection(collection_name)
-            print(f"[向量检索] 成功连接到集合")
-            
-            # 生成查询向量
-            query_embedding = self.embeddings.embed_query(query_text)
-            
-            # 执行相似度搜索
-            print(f"[向量检索] 执行相似度搜索...")
-            results = collection.query(
-                query_embeddings=query_embedding,
-                n_results=top_k,
-            )
-            
-            # 格式化结果
-            formatted_results = []
-            for doc, distance in zip(results["documents"][0], results["distances"][0]):
-                # 将距离转换为相似度分数 (1 - 归一化距离)
-                print(f"[向量检索] 找到结果 - 距离：{distance:.4f}，内容预览：{doc[:50]}...")
-                formatted_results.append({
-                    "content": doc,
-                    "distance": float(distance),
-                    "metadata": {}  # ChromaDB 原生客户端的查询结果中如果需要元数据，可以在 include 中添加 "metadatas"
-                })
-            # 距离升序排序
-            formatted_results.sort(key=lambda x: x["distance"])
-            
-            print(f"[向量检索] 检索完成，返回 {len(formatted_results)} 条结果")
-            return formatted_results
-            
-        except Exception as e:
-            print(f"[向量检索] 错误：{str(e)}")
-            raise ValueError(f"向量检索失败: {str(e)}")
+        if not utility.has_collection(collection_name):
+            return []
 
-    async def _get_vector_store(self, collection_name: str) -> Chroma:
-        """
-        获取向量存储实例
-        
-        Args:
-            collection_name: 集合名称
-            
-        Returns:
-            Chroma: 向量存储实例
-        """
-        return Chroma(
-            client=self.client,
-            collection_name=collection_name,
-            embedding_function=self.embeddings
+        collection = Collection(collection_name)
+        await asyncio.to_thread(collection.load)
+        try:
+            query_embedding = await self.embeddings.aembed_query(query_text)
+        except AttributeError:
+            query_embedding = await asyncio.to_thread(self.embeddings.embed_query, query_text)
+        search_params = {"metric_type": "L2", "params": {"nprobe": 10}}
+        results = await asyncio.to_thread(
+            collection.search,
+            data=[query_embedding],
+            anns_field="embedding",
+            param=search_params,
+            limit=top_k,
+            output_fields=["content"],
         )
+
+        formatted_results: List[Dict[str, Any]] = []
+        for hit in results[0]:
+            content = self._extract_content(hit)
+            formatted_results.append(
+                {
+                    "content": content or "",
+                    "distance": float(hit.distance),
+                    "metadata": {},
+                }
+            )
+        formatted_results.sort(key=lambda x: x["distance"])
+        return formatted_results
+
+    @staticmethod
+    def _extract_content(hit: Any) -> Optional[str]:
+        if hasattr(hit, "entity") and hit.entity is not None:
+            try:
+                return hit.entity.get("content")
+            except Exception:
+                pass
+        try:
+            return hit.get("content")
+        except Exception:
+            return None
+
+
+

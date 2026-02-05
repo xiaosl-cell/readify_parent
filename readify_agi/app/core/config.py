@@ -1,10 +1,10 @@
-# 标准库导入
+﻿# 鏍囧噯搴撳鍏?
 import asyncio
 import logging
 import os
 from typing import Any, Dict
 
-# 第三方库导入
+# 绗笁鏂瑰簱瀵煎叆
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 
@@ -69,35 +69,30 @@ def _load_nacos_config() -> Dict[str, Any]:
 
 class Settings(BaseSettings):
     """??????"""
-    # ????????
     DB_HOST: str
     DB_PORT: int
     DB_USER: str
     DB_PASSWORD: str
     DB_NAME: str
-    
-    # ?????????
-    VECTOR_STORE_DIR: str = "data/vector_store"
-    
-    # Chroma???
-    CHROMA_SERVER_HOST: str = "localhost"
-    CHROMA_SERVER_PORT: int = 8000
-    CHROMA_SERVER_SSL_ENABLED: bool = False
+    # Milvus settings
+    MILVUS_HOST: str = os.getenv("MILVUS_HOST", "localhost")
+    MILVUS_PORT: int = int(os.getenv("MILVUS_PORT", "19530"))
+    MILVUS_USER: str = os.getenv("MILVUS_USER", "")
+    MILVUS_PASSWORD: str = os.getenv("MILVUS_PASSWORD", "")
+    MILVUS_DB_NAME: str = os.getenv("MILVUS_DB_NAME", "default")
     
     # LlamaParse???
     LLAMA_PARSE_API_KEY: str
     
-    # LLM配置 - 统一的模型配置
+    # LLM閰嶇疆 - 缁熶竴鐨勬ā鍨嬮厤缃?
     LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")
     LLM_API_BASE: str = os.getenv("LLM_API_BASE", "https://api.openai.com/v1")
     LLM_MODEL_NAME: str = os.getenv("LLM_MODEL_NAME", "gpt-4o")
 
-    # Embedding模型配置
+    # Embedding妯″瀷閰嶇疆
     EMBEDDING_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     EMBEDDING_API_BASE: str = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
     EMBEDDING_MODEL: str = "text-embedding-3-small"
-
-    # ??????
     FILE_PROCESS_CALLBACK_URL: str = os.getenv("FILE_PROCESS_CALLBACK_URL", "")
     FILE_PROCESS_CALLBACK_API_KEY: str = os.getenv("FILE_PROCESS_CALLBACK_API_KEY", "")
     
@@ -141,8 +136,17 @@ _nacos_config = _load_nacos_config() if _nacos_enabled else {}
 if _nacos_enabled:
     if not _nacos_config:
         raise RuntimeError(
-            "NACOS_ENABLED=true 但未能从 Nacos 拉取到配置，请检查 NACOS_CONFIG_DATA_ID、group、namespace、账号密码"
+            "NACOS_ENABLED=true 但未能从 Nacos 拉取到配置，请检查 "
+            "NACOS_CONFIG_DATA_ID、NACOS_GROUP、NACOS_NAMESPACE、"
+            "NACOS_USERNAME、NACOS_PASSWORD 等环境变量或 Nacos 配置是否正确"
         )
+    # 兼容 Nacos 中将某些字段配置为 null 的情况（例如 MILVUS_USER / MILVUS_PASSWORD）
+    for _key in ("MILVUS_USER", "MILVUS_PASSWORD"):
+        if _key in _nacos_config and _nacos_config[_key] is None:
+            _nacos_config[_key] = ""
     settings = Settings(**_nacos_config)
 else:
     settings = Settings()
+
+
+
