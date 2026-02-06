@@ -4,6 +4,7 @@ param(
     [switch]$SkipAgi,
     [switch]$SkipServer,
     [switch]$SkipFrontend,
+    [switch]$SkipAdmin,
     [switch]$RebuildServer
 )
 
@@ -190,6 +191,18 @@ if (-not $SkipFrontend) {
         $frontendCommand = "call `"$npmCommand`" install && call `"$npmCommand`" run dev"
     }
     Start-CmdWindow -Title "readify-frontend" -Command $frontendCommand -WorkingDirectory $frontendRoot
+}
+
+if (-not $SkipAdmin) {
+    $adminRoot = Join-Path $repoRoot "readify-admin"
+    $npmCommand = Get-NpmCommand
+    $nodeModulesPath = Join-Path $adminRoot "node_modules"
+    if (Test-Path $nodeModulesPath) {
+        $adminCommand = "call `"$npmCommand`" run dev"
+    } else {
+        $adminCommand = "call `"$npmCommand`" install && call `"$npmCommand`" run dev"
+    }
+    Start-CmdWindow -Title "readify-admin" -Command $adminCommand -WorkingDirectory $adminRoot
 }
 
 Write-Host "Done. Service windows should be opening now."

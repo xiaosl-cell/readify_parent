@@ -7,6 +7,9 @@ import com.readify.server.domain.mind_map.service.MindMapNodeService;
 import com.readify.server.domain.mind_map.service.MindMapService;
 import com.readify.server.infrastructure.common.exception.NotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,7 +21,9 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MindMapNodeServiceImpl implements MindMapNodeService {
     private final MindMapNodeRepository mindMapNodeRepository;
-    private final MindMapService mindMapService;
+
+    @Setter(onMethod_ = {@Autowired, @Lazy})
+    private MindMapService mindMapService;
 
     @Override
     public MindMapNode saveNode(MindMapNode node) {

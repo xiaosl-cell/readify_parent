@@ -82,6 +82,8 @@ public class JwtTokenProvider {
                         .collect(Collectors.toSet())
         );
 
+        log.info("User {} loaded authorities: {}", userId, authorities);
+
         if (authorities.isEmpty()) {
             authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
         }

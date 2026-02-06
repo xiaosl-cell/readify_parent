@@ -98,4 +98,3 @@ public class ProjectController {
         return Result.success(projectService.isProjectNameExists(name, SecurityUtils.getCurrentUserId()));
     }
 }
-
