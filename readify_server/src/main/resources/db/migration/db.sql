@@ -1,13 +1,13 @@
 create table if not exists alembic_version
 (
     version_num varchar(32) not null
-        primary key
-);
+    primary key
+    );
 
 create table if not exists api_keys
 (
     id          bigint auto_increment
-        primary key,
+    primary key,
     name        varchar(100)         not null,
     api_key     varchar(100)         not null,
     description varchar(500)         null,
@@ -16,8 +16,8 @@ create table if not exists api_keys
     create_time bigint               not null,
     update_time bigint               not null,
     constraint uk_key
-        unique (api_key)
-)
+    unique (api_key)
+    )
     charset = utf8mb4;
 
 create index idx_user_id
@@ -26,7 +26,7 @@ create index idx_user_id
 create table if not exists assistant_thinking
 (
     id              bigint auto_increment comment '主键ID'
-        primary key,
+    primary key,
     project_id      bigint                             not null comment '工程ID',
     user_message_id bigint                             not null comment '对应的用户消息ID',
     content         longtext                           not null comment 'AI思考过程内容',
@@ -47,7 +47,7 @@ create index idx_user_message_id
 create table if not exists conversation_history
 (
     id                     bigint unsigned auto_increment comment '主键ID'
-        primary key,
+    primary key,
     project_id             bigint                                     not null comment '工程ID',
     message_type           enum ('system', 'user', 'assistant')       not null comment '消息类型：系统消息/用户问题/AI思考过程/助手消息',
     content                longtext                                   not null comment '消息内容',
@@ -56,7 +56,7 @@ create table if not exists conversation_history
     sequence               int unsigned     default '0'               not null comment '对话序号，同一会话中的排序',
     created_at             timestamp        default CURRENT_TIMESTAMP not null comment '创建时间',
     updated_at             timestamp        default CURRENT_TIMESTAMP not null on update CURRENT_TIMESTAMP comment '更新时间'
-)
+    )
     comment '对话历史记录表';
 
 create index idx_created_at
@@ -74,7 +74,7 @@ create index idx_session_sequence
 create table if not exists document
 (
     id          bigint auto_increment comment '主键ID'
-        primary key,
+    primary key,
     file_id     bigint               not null comment '关联的文件ID',
     label       varchar(255)         not null,
     content     text                 not null comment '解析的文本内容',
@@ -82,7 +82,7 @@ create table if not exists document
     create_time bigint               not null comment '创建时间',
     update_time bigint               not null comment '更新时间',
     deleted     tinyint(1) default 0 not null comment '是否删除'
-)
+    )
     comment '文档解析内容表';
 
 create index idx_document_file_id
@@ -91,7 +91,7 @@ create index idx_document_file_id
 create table if not exists file
 (
     id             bigint auto_increment comment '主键ID'
-        primary key,
+    primary key,
     original_name  varchar(255)                not null comment '原始文件名',
     storage_key    varchar(255)                not null comment '对象存储Key',
     storage_bucket varchar(100)                not null comment '对象存储桶',
@@ -103,7 +103,7 @@ create table if not exists file
     update_time    bigint                      not null comment '更新时间',
     deleted        tinyint(1)  default 0       not null comment '是否删除',
     vectorized     tinyint(1)  default 0       not null comment '是否已向量化'
-)
+    )
     comment '文件表' charset = utf8mb4;
 
 create index idx_md5
@@ -112,7 +112,7 @@ create index idx_md5
 create table if not exists mind_map
 (
     id          bigint auto_increment comment '思维导图ID'
-        primary key,
+    primary key,
     project_id  bigint               not null comment '工程id',
     file_id     bigint               not null,
     title       varchar(255)         not null comment '思维导图标题',
@@ -122,7 +122,7 @@ create table if not exists mind_map
     created_at  bigint               not null comment '创建时间',
     updated_at  bigint               not null comment '更新时间',
     is_deleted  tinyint(1) default 0 not null comment '逻辑删除标记，0-未删除，1-已删除'
-)
+    )
     comment '思维导图主表' charset = utf8mb4;
 
 create index idx_user_id
@@ -131,7 +131,7 @@ create index idx_user_id
 create table if not exists mind_map_node
 (
     id           bigint auto_increment comment '节点唯一标识'
-        primary key,
+    primary key,
     project_id   bigint               null,
     mind_map_id  bigint               not null,
     file_id      bigint               not null comment '所属文件ID',
@@ -142,7 +142,7 @@ create table if not exists mind_map_node
     created_time bigint               not null comment '创建时间',
     updated_time bigint               not null comment '更新时间',
     deleted      tinyint(1) default 0 not null comment '是否删除，0-未删除，1-已删除'
-)
+    )
     comment '思维导图节点表' charset = utf8mb4;
 
 create index idx_file_id
@@ -157,7 +157,7 @@ create index idx_sort
 create table if not exists note_task
 (
     id          bigint auto_increment comment '主键ID'
-        primary key,
+    primary key,
     user_id     bigint               not null comment '用户ID',
     project_id  bigint               not null comment '关联项目ID',
     mind_map_id bigint               not null comment '关联的思维导图ID',
@@ -168,7 +168,7 @@ create table if not exists note_task
     create_time bigint               not null comment '创建时间',
     update_time bigint               not null comment '更新时间',
     deleted     tinyint(1) default 0 not null comment '是否删除'
-)
+    )
     comment '笔记任务表' charset = utf8mb4;
 
 create index idx_note_task_create_time
@@ -186,14 +186,14 @@ create index idx_note_task_user_id
 create table if not exists project_file
 (
     id          bigint auto_increment comment '主键ID'
-        primary key,
+    primary key,
     project_id  bigint               not null comment '项目ID',
     user_id     bigint               null comment '用户id',
     file_id     bigint               not null comment '文件ID',
     create_time bigint               not null comment '创建时间',
     update_time bigint               not null comment '更新时间',
     deleted     tinyint(1) default 0 not null comment '是否删除'
-)
+    )
     comment '项目文件关联表' charset = utf8mb4;
 
 create index idx_file_id
@@ -205,32 +205,32 @@ create index idx_project_id
 create table if not exists repair_document
 (
     id          int auto_increment
-        primary key,
+    primary key,
     file_id     int                  not null,
     content     text                 not null,
     sequence    int                  not null,
     create_time int                  not null,
     update_time int                  not null,
     deleted     tinyint(1) default 0 not null
-);
+    );
 
 create table if not exists user
 (
     id          bigint auto_increment comment '主键ID'
-        primary key,
+    primary key,
     username    varchar(50)          not null comment '用户名',
     password    varchar(100)         not null comment '密码',
     enabled     tinyint(1) default 1 not null comment '是否启用',
     create_time bigint               not null comment '创建时间',
     update_time bigint               not null comment '更新时间',
     deleted     tinyint(1) default 0 not null comment '是否删除'
-)
+    )
     comment '用户表' charset = utf8mb4;
 
 create table if not exists project
 (
     id          bigint auto_increment comment '主键ID'
-        primary key,
+    primary key,
     user_id     bigint               not null comment '用户ID',
     name        varchar(100)         not null comment '工程名称',
     description text                 null comment '工程描述',
@@ -238,10 +238,10 @@ create table if not exists project
     update_time bigint               not null comment '更新时间',
     deleted     tinyint(1) default 0 not null comment '是否删除',
     constraint uk_name
-        unique (name, deleted),
+    unique (name, deleted),
     constraint fk_project_user
-        foreign key (user_id) references user (id)
-)
+    foreign key (user_id) references user (id)
+    )
     comment '工程表' charset = utf8mb4;
 
 create index idx_user_id
