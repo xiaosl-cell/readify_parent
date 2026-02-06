@@ -21,14 +21,3 @@ spring:
         file-extension: yaml
     loadbalancer:
       enabled: true
-
-readify:
-  agi-service:
-    name: readify-agi
-  file:
-    storage-type: minio
-    minio:
-      endpoint: http://localhost:9000
-      access-key: minioadmin
-      secret-key: minioadmin
-      bucket: readify-files

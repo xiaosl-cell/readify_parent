@@ -101,6 +101,31 @@ readify_parent/
 - MySQL 8.0+
 - Docker & Docker Compose (用于基础设施)
 
+### 一键启动（推荐）
+
+在仓库根目录执行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\start-all.ps1
+```
+
+可选参数：
+
+```powershell
+# 跳过某些服务
+.\start-all.ps1 -SkipInfra
+.\start-all.ps1 -SkipAgi
+.\start-all.ps1 -SkipServer
+.\start-all.ps1 -SkipFrontend
+
+# 强制重建后端
+.\start-all.ps1 -RebuildServer
+```
+
+说明：
+- 会自动启动基础设施（Nacos/MySQL/Milvus/MinIO）、AGI、Server、Frontend。
+- 前端会在 `readify_frontend` 目录自动执行 `npm install`（仅首次）和 `npm run dev`。
+
 ### 1. 启动基础设施
 
 ```bash
