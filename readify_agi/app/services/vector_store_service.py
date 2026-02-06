@@ -1,6 +1,7 @@
-﻿from typing import List, Dict, Any, Optional
 import asyncio
+import logging
 import re
+from typing import List, Dict, Any, Optional
 
 from dotenv import load_dotenv
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -18,6 +19,8 @@ from app.core.config import settings
 
 load_dotenv()
 
+logger = logging.getLogger(__name__)
+
 
 class VectorStoreService:
     def __init__(self) -> None:
@@ -25,9 +28,6 @@ class VectorStoreService:
             model=settings.EMBEDDING_MODEL,
             api_key=settings.EMBEDDING_API_KEY,
             base_url=settings.EMBEDDING_API_BASE,
-            # 禁用 token 级别的长度检查，直接使用文本字符串
-            # 因为我们已经用 text_splitter 处理了文本分割
-            # 这样可以避免 langchain 将文本转换为 token IDs（Qwen API 不支持）
             check_embedding_ctx_length=False,
         )
         self.text_splitter = RecursiveCharacterTextSplitter(
@@ -59,7 +59,7 @@ class VectorStoreService:
         collection_name = collection_name.replace("-", "_").replace(".", "_")
         # 移除其他非法字符，只保留字母、数字和下划线
         collection_name = re.sub(r'[^a-zA-Z0-9_]', '_', collection_name)
-        
+
         if utility.has_collection(collection_name):
             return Collection(collection_name)
 
@@ -113,10 +113,12 @@ class VectorStoreService:
             batch_texts = texts[i:end_idx]
             batch_embeddings = embeddings[i:end_idx]
             await asyncio.to_thread(collection.insert, [batch_embeddings, batch_texts])
-            print(
-                f"[VectorStore] Inserted batch {i // batch_size + 1}"
-                f"/{(total_docs + batch_size - 1) // batch_size}"
-                f" (docs {i} - {end_idx})"
+            logger.info(
+                "[VectorStore] Inserted batch %d/%d (docs %d - %d)",
+                i // batch_size + 1,
+                (total_docs + batch_size - 1) // batch_size,
+                i,
+                end_idx
             )
         await asyncio.to_thread(collection.flush)
 
@@ -130,7 +132,7 @@ class VectorStoreService:
         collection_name = f"rf_{collection_name}"
         collection_name = collection_name.replace("-", "_").replace(".", "_")
         collection_name = re.sub(r'[^a-zA-Z0-9_]', '_', collection_name)
-        
+
         if not utility.has_collection(collection_name):
             return []
 
@@ -174,6 +176,3 @@ class VectorStoreService:
             return hit.get("content")
         except Exception:
             return None
-
-
-

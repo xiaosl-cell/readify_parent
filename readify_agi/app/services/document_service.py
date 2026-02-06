@@ -1,18 +1,25 @@
-from typing import List
-from fastapi import HTTPException
-from app.models.document import DocumentCreate
-from app.repositories.document_repository import DocumentRepository
-from app.services.llama_parse_service import LlamaParseService
-from app.repositories.file_repository import FileRepository
-from app.services.object_storage_service import ObjectStorageService
-import json
-from app.core.config import settings
+import logging
 import os
 from pathlib import Path
+from typing import List
+
+from fastapi import HTTPException
+from langchain.prompts import ChatPromptTemplate
+from langchain_openai import ChatOpenAI
+
+from app.core.config import settings
+from app.models.document import DocumentCreate
+from app.repositories.document_repository import DocumentRepository
+from app.repositories.file_repository import FileRepository
+from app.services.llama_parse_service import LlamaParseService
+from app.services.object_storage_service import ObjectStorageService
+
+logger = logging.getLogger(__name__)
+
 
 class DocumentService:
     """文档服务层"""
-    
+
     def __init__(
         self,
         document_repository: DocumentRepository,
@@ -23,20 +30,18 @@ class DocumentService:
         self.file_repository = file_repository
         self.llama_parse_service = llama_parse_service
         self.object_storage_service = ObjectStorageService()
-        
+
     async def parse_and_save(self, file_id: int) -> None:
         """
         解析文件并保存到数据库
-        
+
         Args:
             file_id: 文件ID
         """
-        # 获取文件信息
         file = await self.file_repository.get_file_by_id(file_id)
         if not file:
             raise HTTPException(status_code=404, detail="文件不存在")
-            
-        # 解析文件
+
         if file.storage_type != "minio":
             raise HTTPException(status_code=400, detail="Unsupported storage type")
 
@@ -49,197 +54,167 @@ class DocumentService:
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)
-        
-        print(f"解析文件 '{file.original_name}' (ID:{file_id}) 得到 {len(documents)} 个文档块")
-        
-        # 创建文档记录
+
+        logger.info("解析文件 '%s' (ID:%d) 得到 %d 个文档块", file.original_name, file_id, len(documents))
+
         doc_creates = []
         for i, doc in enumerate(documents):
             content = doc.get_content()
-            if not content:  # 跳过空内容
+            if not content:
                 continue
-                
-            # 为文档内容生成标签
-            print(f"为文档块 {i+1}/{len(documents)} 生成标签...")
+
+            logger.info("为文档块 %d/%d 生成标签...", i + 1, len(documents))
             label = await self._generate_label_with_4o_mini(content)
-                
+
             doc_create = DocumentCreate(
                 file_id=file_id,
                 content=content,
                 sequence=i,
-                label=label  # 添加生成的标签
+                label=label
             )
             doc_creates.append(doc_create)
-            
-        # 批量保存到数据库
+
         if doc_creates:
             docs = await self.document_repository.create_many(doc_creates)
-            print(f"成功保存 {len(docs)} 个文档块到数据库，并生成了标签")
+            logger.info("成功保存 %d 个文档块到数据库，并生成了标签", len(docs))
         else:
-            print("没有有效的文档内容需要保存")
-            
+            logger.info("没有有效的文档内容需要保存")
+
     async def get_file_documents(self, file_id: int) -> List[str]:
         """
         获取文件的所有文档内容
-        
+
         Args:
             file_id: 文件ID
-            
+
         Returns:
             List[str]: 文档内容列表
         """
         documents = await self.document_repository.get_by_file_id(file_id)
         return [doc.content for doc in documents]
-        
+
     async def generate_label(self, document_id: int) -> str:
         """
         为文档生成标签
-        
+
         Args:
             document_id: 文档ID
-            
+
         Returns:
             str: 生成的标签
         """
-        # 获取文档
         document = await self.document_repository.get_by_id(document_id)
         if not document:
             raise HTTPException(status_code=404, detail="文档不存在")
-            
-        # 调用4o-mini模型生成标签
+
         label = await self._generate_label_with_4o_mini(document.content)
-        
-        # 更新文档标签
         await self.document_repository.update_label(document_id, label)
-        
         return label
-        
+
     async def generate_labels_for_file(self, file_id: int, force_regenerate: bool = False) -> int:
         """
         为文件的所有文档生成标签
-        
+
         Args:
             file_id: 文件ID
             force_regenerate: 是否强制重新生成已有标签
-            
+
         Returns:
             int: 成功生成标签的文档数量
         """
-        # 获取文件信息
         file = await self.file_repository.get_file_by_id(file_id)
         if not file:
-            print(f"文件ID:{file_id} 不存在")
+            logger.warning("文件ID:%d 不存在", file_id)
             return 0
-            
-        print(f"开始处理文件: '{file.original_name}' (ID:{file_id})")
-        
-        # 获取文件的所有文档
+
+        logger.info("开始处理文件: '%s' (ID:%d)", file.original_name, file_id)
+
         documents = await self.document_repository.get_by_file_id(file_id)
         if not documents:
-            print(f"文件ID:{file_id} 没有找到文档")
+            logger.warning("文件ID:%d 没有找到文档", file_id)
             return 0
-            
+
         total_docs = len(documents)
-        print(f"开始为文件 '{file.original_name}' (ID:{file_id})的{total_docs}个文档生成标签")
-        
-        # 为每个文档生成标签并更新
+        logger.info("开始为文件 '%s' (ID:%d)的%d个文档生成标签", file.original_name, file_id, total_docs)
+
         document_ids = []
         labels = []
-        
+
         for idx, doc in enumerate(documents, 1):
             try:
-                # 检查文档是否已有标签（如果不是强制重新生成）
                 if doc.label and not force_regenerate:
-                    print(f"文档 [{idx}/{total_docs}] ID:{doc.id} 已有标签: {doc.label[:30]}...")
+                    logger.debug("文档 [%d/%d] ID:%d 已有标签: %s...", idx, total_docs, doc.id, doc.label[:30])
                     continue
-                    
-                print(f"处理文档 [{idx}/{total_docs}] ID:{doc.id}")
+
+                logger.info("处理文档 [%d/%d] ID:%d", idx, total_docs, doc.id)
                 label = await self._generate_label_with_4o_mini(doc.content)
                 if label:
                     document_ids.append(doc.id)
                     labels.append(label)
                 else:
-                    print(f"警告: 文档ID:{doc.id} 生成的标签为空")
-                    
-                # 每处理10个文档，输出进度
+                    logger.warning("文档ID:%d 生成的标签为空", doc.id)
+
                 if idx % 10 == 0 or idx == total_docs:
-                    print(f"进度: {idx}/{total_docs} ({idx/total_docs*100:.1f}%)")
-                    
+                    logger.info("进度: %d/%d (%.1f%%)", idx, total_docs, idx / total_docs * 100)
+
             except Exception as e:
-                print(f"处理文档ID:{doc.id}时出错: {str(e)}")
+                logger.error("处理文档ID:%d时出错: %s", doc.id, str(e))
                 continue
-            
-        # 批量更新文档标签
+
         if document_ids:
             updated_count = await self.document_repository.update_many_labels(document_ids, labels)
-            print(f"成功更新{updated_count}个文档的标签")
+            logger.info("成功更新%d个文档的标签", updated_count)
             return updated_count
         else:
-            print("没有文档需要更新标签")
+            logger.info("没有文档需要更新标签")
             return 0
-        
+
     async def _generate_label_with_4o_mini(self, content: str) -> str:
         """
         使用4o-mini模型生成标签
-        
+
         Args:
             content: 文档内容
-            
+
         Returns:
             str: 生成的标签
         """
-        # 导入必要的库
-        from langchain_openai import ChatOpenAI
-        from langchain.prompts import ChatPromptTemplate
-        
         prompt_template = ""
-        # 读取提示词文件
         try:
-            # 尝试获取项目根目录
             root_dir = Path(__file__).parent.parent.parent.absolute()
             prompt_file_path = os.path.join(root_dir, "prompt", "label.prompt")
-            
-            # 尝试打开文件
+
             with open(prompt_file_path, "r", encoding="utf-8") as f:
                 prompt_template = f.read().strip()
-                print(f"成功读取提示词文件: {prompt_file_path}")
+                logger.debug("成功读取提示词文件: %s", prompt_file_path)
         except Exception as e:
-            print(f"读取提示词文件时出错: {str(e)}")
-            print(f"尝试的文件路径: {prompt_file_path}")
-            # 使用默认提示词
+            logger.warning("读取提示词文件时出错: %s", str(e))
             prompt_template = "生成描述该文本的标签，概括该文本主要描述的内容，不超过50个字：\n\n文本：{content}"
-            print(f"使用默认提示词模板: {prompt_template}")
-        
+            logger.debug("使用默认提示词模板")
+
         try:
-            # 使用Langchain调用模型，使用配置中的统一 LLM 模型名称
             chat = ChatOpenAI(
                 model=settings.LLM_MODEL_NAME,
                 temperature=0.5,
                 api_key=settings.LLM_API_KEY,
                 base_url=settings.LLM_API_BASE,
             )
-            
-            # 创建聊天提示模板
+
             prompt = ChatPromptTemplate.from_messages([
                 ("system", "你是一个文本标签生成助手，请生成简短的标签来概括文本内容。"),
-                ("human", prompt_template)  # 提示词模板中已包含{content}占位符
+                ("human", prompt_template)
             ])
-            
-            # 生成标签，传入变量以替换占位符
+
             chain = prompt | chat
             response = await chain.ainvoke({"content": content})
-            
-            # 获取结果
+
             label = response.content.strip()
-            
-            # 确保标签不超过50个字符
+
             if len(label) > 50:
                 label = label[:50]
-                
+
             return label
-            
+
         except Exception as e:
-            print(f"生成标签时发生错误: {str(e)}")
-            import traceback
-            traceback.print_exc()
-            return "" 
+            logger.error("生成标签时发生错误: %s", str(e), exc_info=True)
+            return ""

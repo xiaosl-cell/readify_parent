@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Dict, Any, List, Optional, Union, Callable, Awaitable
 
 import dotenv
@@ -15,6 +16,8 @@ from app.repositories.conversation_repository import ConversationRepository
 from app.repositories.document_repository import DocumentRepository
 from app.repositories.file_repository import FileRepository
 from app.repositories.project_repository import ProjectRepository
+
+logger = logging.getLogger(__name__)
 
 
 def get_llm_config():
@@ -587,7 +590,7 @@ class AgentService:
             'content': error_message,
             'project_id': project_id
         })
-        print(f"[错误] {error_message}")
+        logger.error("[错误] %s", error_message)
 
         # 记录错误
         self.all_thoughts.append(f"\n处理出错: {error_message}\n")
