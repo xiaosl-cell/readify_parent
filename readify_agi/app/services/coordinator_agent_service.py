@@ -207,7 +207,10 @@ class CoordinatorAgentService(AgentService):
 
             except json.JSONDecodeError:
                 return "错误: 无效的JSON格式参数"
+            except KeyError as e:
+                return f"委派任务时缺少必要参数: {str(e)}"
             except Exception as e:
+                logger.exception("委派任务时发生未预期的错误")
                 return f"委派任务时发生错误: {str(e)}"
 
         @tool
@@ -241,9 +244,9 @@ class CoordinatorAgentService(AgentService):
                     await agent.initialize()
                     logger.info("已初始化专业智能体: %s", agent_name)
                 except Exception as e:
-                    logger.error("初始化专业智能体 %s 失败: %s", agent_name, str(e))
+                    logger.exception("初始化专业智能体 %s 失败", agent_name)
         except Exception as e:
-            logger.error("初始化专业智能体时发生错误: %s", str(e))
+            logger.exception("初始化专业智能体时发生错误")
 
     async def _before_generation(self, query: str, callback: Callable) -> Dict[str, Any]:
         """

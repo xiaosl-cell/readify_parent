@@ -123,7 +123,10 @@ class NoteAgentService(AgentService):
                         "id": new_node.id,
                         "content": new_node.content
                     })
+                except ValueError as e:
+                    return f"创建子节点参数错误: {str(e)}"
                 except Exception as e:
+                    logger.exception("创建子节点失败")
                     return f"创建子节点失败: {str(e)}"
 
             result = {

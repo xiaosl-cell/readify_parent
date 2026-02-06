@@ -170,9 +170,9 @@ class VectorStoreService:
         if hasattr(hit, "entity") and hit.entity is not None:
             try:
                 return hit.entity.get("content")
-            except Exception:
+            except (AttributeError, TypeError, KeyError):
                 pass
         try:
             return hit.get("content")
-        except Exception:
+        except (AttributeError, TypeError, KeyError):
             return None

@@ -1,4 +1,5 @@
 import json
+import logging
 from typing import Any, Type, TypeVar, Optional, Dict, Union, Callable, List
 
 from langchain_core.output_parsers import JsonOutputParser, PydanticOutputParser, BaseOutputParser
@@ -6,6 +7,8 @@ from langchain.output_parsers import OutputFixingParser
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 T = TypeVar('T', bound=BaseModel)
 
@@ -60,8 +63,9 @@ def _parse_with_llm(
     try:
         # 尝试解析
         return parser.invoke(output.content)
-    except Exception as e:
-        # 尝试修复
+    except (json.JSONDecodeError, ValueError) as e:
+        # 解析失败，尝试使用修复解析器
+        logger.warning("初次解析失败，尝试修复: %s", str(e))
         fixing_parser = OutputFixingParser.from_llm(parser=parser, llm=llm)
         return fixing_parser.invoke(output.content)
 

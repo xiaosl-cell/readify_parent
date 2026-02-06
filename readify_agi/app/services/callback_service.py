@@ -118,7 +118,12 @@ class CallbackService:
                     else:
                         logger.warning(f"回调失败，状态码: {response.status}")
                         return False
+        except aiohttp.ClientError as e:
+            logger.error(f"回调网络请求失败: {str(e)}")
+            return False
+        except asyncio.TimeoutError:
+            logger.error("回调请求超时")
+            return False
         except Exception as e:
-            logger.error(f"回调异常: {str(e)}")
-            logger.error(traceback.format_exc())
+            logger.exception(f"回调发生未预期的异常: {str(e)}")
             return False 
