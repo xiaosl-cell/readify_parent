@@ -6,6 +6,7 @@ import com.readify.server.infrastructure.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -18,6 +19,7 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -27,22 +29,21 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                // 允许WebSocket连接和其他公开接口
-                // 注意：Spring Security的路径匹配是在DispatcherServlet之前进行的
-                // 所以这里需要包含/api/v1前缀
-                .requestMatchers(new AntPathRequestMatcher("/api/v1/ws/readify/**")).permitAll()
-                .requestMatchers(new AntPathRequestMatcher("/api/v1/readify/**")).permitAll()
-                .requestMatchers(new AntPathRequestMatcher("/api/v1/auth/**")).permitAll()
-                .requestMatchers(new AntPathRequestMatcher("/api/v1/v3/api-docs/**")).permitAll()
-                .requestMatchers(new AntPathRequestMatcher("/api/v1/swagger-ui/**")).permitAll()
-                .requestMatchers(new AntPathRequestMatcher("/api/v1/swagger-ui.html")).permitAll()
-                .anyRequest().authenticated()
-            )
-            .addFilterBefore(apiKeyAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), ApiKeyAuthenticationFilter.class);
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers(new AntPathRequestMatcher("/api/v1/ws/readify/**")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/api/v1/auth/register")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/api/v1/auth/login")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/auth/register")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/auth/login")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/api/v1/v3/api-docs/**")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/api/v1/swagger-ui/**")).permitAll()
+                        .requestMatchers(new AntPathRequestMatcher("/api/v1/swagger-ui.html")).permitAll()
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(apiKeyAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(new JwtAuthenticationFilter(jwtTokenProvider), ApiKeyAuthenticationFilter.class);
 
         return http.build();
     }
@@ -51,4 +52,4 @@ public class SecurityConfig {
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-} 
+}

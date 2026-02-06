@@ -90,6 +90,7 @@ public class ProjectFileServiceImpl implements ProjectFileService {
 
     @Override
     public List<File> getProjectFiles(Long projectId) {
+        projectService.getProjectById(projectId, SecurityUtils.getCurrentUserId());
         List<ProjectFile> projectFiles = projectFileRepository.findByProjectId(projectId);
         List<Long> fileIds = projectFiles.stream().map(ProjectFile::getFileId).collect(Collectors.toList());
         if (fileIds.isEmpty()) {

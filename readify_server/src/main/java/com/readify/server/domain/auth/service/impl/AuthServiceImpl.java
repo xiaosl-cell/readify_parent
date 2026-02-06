@@ -4,9 +4,10 @@ import com.readify.server.domain.auth.model.AuthUser;
 import com.readify.server.domain.auth.model.LoginResult;
 import com.readify.server.domain.auth.repository.AuthUserRepository;
 import com.readify.server.domain.auth.service.AuthService;
-import com.readify.server.infrastructure.security.JwtTokenProvider;
+import com.readify.server.domain.auth.service.RbacService;
 import com.readify.server.infrastructure.common.exception.BusinessException;
 import com.readify.server.infrastructure.common.exception.UnauthorizedException;
+import com.readify.server.infrastructure.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -20,18 +21,17 @@ public class AuthServiceImpl implements AuthService {
     private final AuthUserRepository authUserRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final RbacService rbacService;
 
     @Override
     @Transactional
     public AuthUser register(String username, String password) {
-        log.info("开始注册用户: {}", username);
-        
-        // 检查用户名是否已存在
+        log.info("Start register user: {}", username);
+
         if (authUserRepository.existsByUsername(username)) {
             throw new BusinessException("用户名已存在");
         }
 
-        // 创建新用户
         AuthUser authUser = new AuthUser();
         authUser.setUsername(username);
         authUser.setPassword(passwordEncoder.encode(password));
@@ -39,36 +39,38 @@ public class AuthServiceImpl implements AuthService {
         authUser.setCreateTime(System.currentTimeMillis());
         authUser.setUpdateTime(System.currentTimeMillis());
 
-        // 保存用户
         AuthUser savedUser = authUserRepository.save(authUser);
-        log.info("用户注册成功: {}", username);
+        grantDefaultRole(savedUser.getId());
+        log.info("User register success: {}", username);
         return savedUser;
     }
 
     @Override
     public LoginResult login(String username, String password) {
-        log.info("用户登录: {}", username);
-        
-        // 获取用户信息
+        log.info("User login: {}", username);
+
         AuthUser authUser = authUserRepository.findByUsername(username);
         if (authUser == null) {
             throw new UnauthorizedException("用户名或密码错误");
         }
-        
-        // 验证密码
+
         if (!passwordEncoder.matches(password, authUser.getPassword())) {
             throw new UnauthorizedException("用户名或密码错误");
         }
 
-        // 检查账户状态
         if (!authUser.getEnabled()) {
             throw new UnauthorizedException("账户已被禁用");
         }
 
-        // 生成token
         String token = jwtTokenProvider.generateToken(authUser);
-        log.info("用户登录成功: {}", username);
-        
+        log.info("User login success: {}", username);
+
         return new LoginResult(authUser, token);
     }
-} 
+
+    @Override
+    public void grantDefaultRole(Long userId) {
+        rbacService.grantDefaultRoleForUser(userId);
+    }
+}
+

@@ -21,4 +21,6 @@ public interface AuthService {
      * @return 登录成功的用户信息和token
      */
     LoginResult login(String username, String password);
-} 
+
+    void grantDefaultRole(Long userId);
+}

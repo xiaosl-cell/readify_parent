@@ -12,7 +12,13 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -22,44 +28,36 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/projects")
 @RequiredArgsConstructor
-@Tag(name = "项目文件管理", description = "项目文件管理相关接口")
+@Tag(name = "项目文件管理", description = "项目文件上传与查询")
 public class ProjectFileController {
     private final ProjectFileService projectFileService;
     private final WebSocketSessionManager webSocketSessionManager;
 
     @PostMapping("/{projectId}/files")
-    @Operation(summary = "上传文件并关联到项目")
+    @Operation(summary = "上传文件并关联项目")
+    @PreAuthorize("hasAuthority('FILE:WRITE')")
     public Result<FileVO> uploadAndAssociateFile(
             @Parameter(description = "项目ID") @PathVariable Long projectId,
             @Parameter(description = "文件") @RequestParam("file") MultipartFile file) {
         File uploadedFile = projectFileService.uploadAndAssociateFile(projectId, file);
 
-
-        // 发送WebSocket通知
         Long currentUserId = SecurityUtils.getCurrentUserId();
         if (webSocketSessionManager.isUserOnline(currentUserId)) {
-
-            // 获取项目文件列表
             List<File> projectFiles = projectFileService.getProjectFiles(projectId);
-            List<FileVO> fileVOs = projectFiles.stream()
-                    .map(FileVO::from)
-                    .collect(Collectors.toList());
-
-            WebSocketMessage<List<FileVO>> message = WebSocketMessage.create(
-                    "projectFiles",
-                    fileVOs
-            );
+            List<FileVO> fileVOs = projectFiles.stream().map(FileVO::from).collect(Collectors.toList());
+            WebSocketMessage<List<FileVO>> message = WebSocketMessage.create("projectFiles", fileVOs);
             webSocketSessionManager.sendMessageToUser(currentUserId, message);
-            log.info("已发送WebSocket通知给用户：{}", currentUserId);
+            log.info("WebSocket notify project files, userId={}", currentUserId);
         }
         return Result.success(FileVO.from(uploadedFile));
     }
 
     @GetMapping("/{projectId}/files")
-    @Operation(summary = "获取项目文件列表")
-    public Result<List<FileVO>> getProjectFiles(
-            @Parameter(description = "项目ID") @PathVariable Long projectId) {
+    @Operation(summary = "查询项目文件")
+    @PreAuthorize("hasAuthority('FILE:READ')")
+    public Result<List<FileVO>> getProjectFiles(@Parameter(description = "项目ID") @PathVariable Long projectId) {
         List<File> files = projectFileService.getProjectFiles(projectId);
         return Result.success(files.stream().map(FileVO::from).collect(Collectors.toList()));
     }
-} 
+}
+

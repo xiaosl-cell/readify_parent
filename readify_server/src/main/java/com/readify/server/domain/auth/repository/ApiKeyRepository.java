@@ -3,6 +3,7 @@ package com.readify.server.domain.auth.repository;
 import com.readify.server.domain.auth.model.ApiKey;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ApiKeyRepository {
     /**
@@ -21,6 +22,8 @@ public interface ApiKeyRepository {
      */
     ApiKey findByKey(String key);
 
+    Optional<ApiKey> findById(Long id);
+
     /**
      * 根据用户ID查找API Key列表
      *
@@ -35,4 +38,4 @@ public interface ApiKeyRepository {
      * @param id API Key ID
      */
     void delete(Long id);
-} 
+}

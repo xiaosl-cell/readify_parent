@@ -11,5 +11,5 @@ public interface ConversationService {
      * @param projectId 项目ID
      * @return 对话历史视图对象列表
      */
-    List<ConversationVO> getConversationsByProjectId(Long projectId);
-} 
+    List<ConversationVO> getConversationsByProjectId(Long projectId, Long userId);
+}

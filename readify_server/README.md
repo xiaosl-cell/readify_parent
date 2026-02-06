@@ -198,6 +198,14 @@ public class ReadifyWebSocketHandler extends TextWebSocketHandler {
 
 ## 📄 许可证
 
+## RBAC
+
+- Tables: `sys_role`, `sys_permission`, `sys_user_role`, `sys_role_permission`.
+- Default role: `ROLE_USER` (assigned after user registration).
+- Admin role: `ROLE_ADMIN` (seeded with all permissions).
+- Permission examples: `PROJECT:READ`, `PROJECT:WRITE`, `FILE:READ`, `FILE:WRITE`, `MIND_MAP:READ`, `MIND_MAP:WRITE`, `CONVERSATION:READ`, `API_KEY:MANAGE`, `USER:READ`, `USER:WRITE`.
+- Method-level authorization uses `@PreAuthorize`.
+
 [MIT License](LICENSE)
 
 ---

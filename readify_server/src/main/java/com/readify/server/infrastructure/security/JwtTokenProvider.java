@@ -1,6 +1,7 @@
 package com.readify.server.infrastructure.security;
 
 import com.readify.server.domain.auth.model.AuthUser;
+import com.readify.server.domain.auth.service.RbacService;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.extern.slf4j.Slf4j;
@@ -12,8 +13,10 @@ import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
 import java.security.Key;
-import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -21,12 +24,15 @@ public class JwtTokenProvider {
 
     private final Key key;
     private final long validityInMilliseconds;
+    private final RbacService rbacService;
 
     public JwtTokenProvider(
             @Value("${jwt.secret}") String secret,
-            @Value("${jwt.validity-in-seconds}") long validityInSeconds) {
+            @Value("${jwt.validity-in-seconds}") long validityInSeconds,
+            RbacService rbacService) {
         this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.validityInMilliseconds = validityInSeconds * 1000;
+        this.rbacService = rbacService;
     }
 
     public String generateToken(AuthUser user) {
@@ -62,10 +68,28 @@ public class JwtTokenProvider {
         String username = claims.getSubject();
         Long userId = claims.get("userId", Long.class);
 
+        Set<SimpleGrantedAuthority> authorities = new HashSet<>();
+        authorities.addAll(
+                rbacService.getRoleAuthorities(userId)
+                        .stream()
+                        .map(SimpleGrantedAuthority::new)
+                        .collect(Collectors.toSet())
+        );
+        authorities.addAll(
+                rbacService.getPermissionAuthorities(userId)
+                        .stream()
+                        .map(SimpleGrantedAuthority::new)
+                        .collect(Collectors.toSet())
+        );
+
+        if (authorities.isEmpty()) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_USER"));
+        }
+
         return new UsernamePasswordAuthenticationToken(
                 username,
                 userId,
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
+                authorities
         );
     }
 

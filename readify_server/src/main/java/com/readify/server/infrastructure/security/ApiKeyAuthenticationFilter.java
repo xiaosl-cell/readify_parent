@@ -1,6 +1,7 @@
 package com.readify.server.infrastructure.security;
 
 import com.readify.server.domain.auth.model.ApiKey;
+import com.readify.server.domain.auth.service.RbacService;
 import com.readify.server.domain.auth.service.ApiKeyService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -16,13 +17,16 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
     private final ApiKeyService apiKeyService;
+    private final RbacService rbacService;
     private static final String API_KEY_HEADER = "X-API-Key";
 
     @Override
@@ -37,10 +41,24 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
                 log.debug("API Key validation result: {}", key != null);
                 
                 if (key != null) {
+                    Set<SimpleGrantedAuthority> authorities = new HashSet<>();
+                    authorities.add(new SimpleGrantedAuthority("ROLE_API_USER"));
+                    authorities.addAll(
+                            rbacService.getRoleAuthorities(key.getUserId())
+                                    .stream()
+                                    .map(SimpleGrantedAuthority::new)
+                                    .collect(Collectors.toSet())
+                    );
+                    authorities.addAll(
+                            rbacService.getPermissionAuthorities(key.getUserId())
+                                    .stream()
+                                    .map(SimpleGrantedAuthority::new)
+                                    .collect(Collectors.toSet())
+                    );
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             "API_USER_" + key.getUserId(),
                             key.getUserId(),
-                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_API_USER"))
+                            authorities
                     );
                     SecurityContextHolder.getContext().setAuthentication(authentication);
                     log.debug("API Key authentication successful for user ID: {}", key.getUserId());

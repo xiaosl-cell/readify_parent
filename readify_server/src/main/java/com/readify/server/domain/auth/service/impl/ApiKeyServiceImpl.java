@@ -3,6 +3,8 @@ package com.readify.server.domain.auth.service.impl;
 import com.readify.server.domain.auth.model.ApiKey;
 import com.readify.server.domain.auth.repository.ApiKeyRepository;
 import com.readify.server.domain.auth.service.ApiKeyService;
+import com.readify.server.infrastructure.common.exception.ForbiddenException;
+import com.readify.server.infrastructure.common.exception.NotFoundException;
 import com.readify.server.infrastructure.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +44,11 @@ public class ApiKeyServiceImpl implements ApiKeyService {
     @Override
     @Transactional
     public void delete(Long id) {
+        ApiKey apiKey = apiKeyRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("API Key不存在"));
+        if (!apiKey.getUserId().equals(SecurityUtils.getCurrentUserId())) {
+            throw new ForbiddenException("无权限删除该API Key");
+        }
         apiKeyRepository.delete(id);
     }
 

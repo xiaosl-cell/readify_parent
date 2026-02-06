@@ -1,7 +1,7 @@
 package com.readify.server.interfaces.auth;
 
-import com.readify.server.domain.auth.service.AuthService;
 import com.readify.server.domain.auth.model.LoginResult;
+import com.readify.server.domain.auth.service.AuthService;
 import com.readify.server.infrastructure.common.Result;
 import com.readify.server.interfaces.auth.converter.AuthVOConverter;
 import com.readify.server.interfaces.auth.req.LoginReq;
@@ -15,13 +15,16 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 @Slf4j
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
-@Tag(name = "认证管理", description = "用户注册和登录相关接口")
+@Tag(name = "认证管理", description = "用户注册与登录")
 public class AuthController {
     private final AuthService authService;
     private final AuthVOConverter authVOConverter = AuthVOConverter.INSTANCE;
@@ -34,20 +37,9 @@ public class AuthController {
             @ApiResponse(responseCode = "500", description = "系统异常")
     })
     public Result<Void> register(@RequestBody RegisterReq request) {
-        log.info("收到注册请求: {}", request.getUsername());
-        try {
-            authService.register(
-                    request.getUsername(),
-                    request.getPassword()
-            );
-            return Result.success("注册成功");
-        } catch (IllegalArgumentException e) {
-            log.warn("注册失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        } catch (Exception e) {
-            log.error("注册异常", e);
-            return Result.error("系统异常，请稍后重试");
-        }
+        log.info("Register request: {}", request.getUsername());
+        authService.register(request.getUsername(), request.getPassword());
+        return Result.success("注册成功");
     }
 
     @PostMapping("/login")
@@ -57,13 +49,12 @@ public class AuthController {
                     content = @Content(schema = @Schema(implementation = LoginVO.class))),
     })
     public Result<LoginVO> login(@RequestBody LoginReq request) {
-        log.info("收到登录请求: {}", request.getUsername());
+        log.info("Login request: {}", request.getUsername());
         LoginResult result = authService.login(request.getUsername(), request.getPassword());
         LoginVO loginVO = new LoginVO();
         loginVO.setToken(result.getToken());
-        // 复制用户信息
         authVOConverter.updateLoginVO(result.getUser(), loginVO);
         return Result.success(loginVO);
-
     }
 }
+

@@ -110,7 +110,7 @@ public interface MindMapNodeService {
      * @param mindMapId 思维导图ID
      * @return 思维导图树形结构
      */
-    MindMapNodeTree getFullMindMap(Long mindMapId);
+    MindMapNodeTree getFullMindMap(Long mindMapId, Long userId);
     
     /**
      * 根据节点ID获取以该节点为根的子树
@@ -118,5 +118,5 @@ public interface MindMapNodeService {
      * @param nodeId 节点ID
      * @return 思维导图子树
      */
-    MindMapNodeTree getSubTreeByNodeId(Long nodeId);
-} 
+    MindMapNodeTree getSubTreeByNodeId(Long nodeId, Long userId);
+}

@@ -7,8 +7,8 @@ import java.util.List;
 
 public interface FileService {
     File upload(String originalFilename, String mimeType, long size, InputStream inputStream);
-    void delete(Long fileId);
-    File getFileInfo(Long fileId);
+    void delete(Long fileId, Long userId);
+    File getFileInfo(Long fileId, Long userId);
     List<File> getFilesByIds(List<Long> fileIds);
 
     /**

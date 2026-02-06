@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Repository
@@ -33,6 +34,11 @@ public class ApiKeyRepositoryImpl implements ApiKeyRepository {
         queryWrapper.eq(ApiKeyEntity::getApiKey, key);
         ApiKeyEntity entity = apiKeyMapper.selectOne(queryWrapper);
         return toApiKey(entity);
+    }
+
+    @Override
+    public Optional<ApiKey> findById(Long id) {
+        return Optional.ofNullable(apiKeyMapper.selectById(id)).map(this::toApiKey);
     }
 
     @Override

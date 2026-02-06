@@ -1,10 +1,10 @@
-create table alembic_version
+create table if not exists alembic_version
 (
     version_num varchar(32) not null
         primary key
 );
 
-create table api_keys
+create table if not exists api_keys
 (
     id          bigint auto_increment
         primary key,
@@ -23,7 +23,7 @@ create table api_keys
 create index idx_user_id
     on api_keys (user_id);
 
-create table assistant_thinking
+create table if not exists assistant_thinking
 (
     id              bigint auto_increment comment '主键ID'
         primary key,
@@ -44,7 +44,7 @@ create index idx_project_id
 create index idx_user_message_id
     on assistant_thinking (user_message_id);
 
-create table conversation_history
+create table if not exists conversation_history
 (
     id                     bigint unsigned auto_increment comment '主键ID'
         primary key,
@@ -71,7 +71,7 @@ create index idx_project_session
 create index idx_session_sequence
     on conversation_history (sequence);
 
-create table document
+create table if not exists document
 (
     id          bigint auto_increment comment '主键ID'
         primary key,
@@ -88,28 +88,28 @@ create table document
 create index idx_document_file_id
     on document (file_id);
 
-create table file
+create table if not exists file
 (
-    id            bigint auto_increment comment '主键ID'
+    id             bigint auto_increment comment '主键ID'
         primary key,
-    original_name varchar(255)         not null comment '原始文件名',
-    storage_key    varchar(255)         not null comment '对象存储Key',
-    storage_bucket varchar(100)         not null comment '对象存储桶',
-    storage_type   varchar(20)          not null default 'minio' comment '存储类型',
-    size          bigint               not null comment '文件大小(字节)',
-    mime_type     varchar(100)         null comment '文件MIME类型',
-    md5           char(32)             null comment '文件MD5值',
-    create_time   bigint               not null comment '创建时间',
-    update_time   bigint               not null comment '更新时间',
-    deleted       tinyint(1) default 0 not null comment '是否删除',
-    vectorized    tinyint(1) default 0 not null comment '是否已向量化'
+    original_name  varchar(255)                not null comment '原始文件名',
+    storage_key    varchar(255)                not null comment '对象存储Key',
+    storage_bucket varchar(100)                not null comment '对象存储桶',
+    storage_type   varchar(20) default 'minio' not null comment '存储类型',
+    size           bigint                      not null comment '文件大小(字节)',
+    mime_type      varchar(100)                null comment '文件MIME类型',
+    md5            char(32)                    null comment '文件MD5值',
+    create_time    bigint                      not null comment '创建时间',
+    update_time    bigint                      not null comment '更新时间',
+    deleted        tinyint(1)  default 0       not null comment '是否删除',
+    vectorized     tinyint(1)  default 0       not null comment '是否已向量化'
 )
     comment '文件表' charset = utf8mb4;
 
 create index idx_md5
     on file (md5);
 
-create table mind_map
+create table if not exists mind_map
 (
     id          bigint auto_increment comment '思维导图ID'
         primary key,
@@ -121,14 +121,14 @@ create table mind_map
     user_id     bigint               not null comment '创建者用户ID',
     created_at  bigint               not null comment '创建时间',
     updated_at  bigint               not null comment '更新时间',
-    is_deleted  tinyint(1) default 0 not null comment '逻辑删除标记：0-未删除，1-已删除'
+    is_deleted  tinyint(1) default 0 not null comment '逻辑删除标记，0-未删除，1-已删除'
 )
     comment '思维导图主表' charset = utf8mb4;
 
 create index idx_user_id
     on mind_map (user_id);
 
-create table mind_map_node
+create table if not exists mind_map_node
 (
     id           bigint auto_increment comment '节点唯一标识'
         primary key,
@@ -141,7 +141,7 @@ create table mind_map_node
     level        int        default 0 not null comment '节点层级，根节点为0',
     created_time bigint               not null comment '创建时间',
     updated_time bigint               not null comment '更新时间',
-    deleted      tinyint(1) default 0 not null comment '是否删除：0-未删除，1-已删除'
+    deleted      tinyint(1) default 0 not null comment '是否删除，0-未删除，1-已删除'
 )
     comment '思维导图节点表' charset = utf8mb4;
 
@@ -154,7 +154,7 @@ create index idx_parent_id
 create index idx_sort
     on mind_map_node (file_id, parent_id, sequence);
 
-create table note_task
+create table if not exists note_task
 (
     id          bigint auto_increment comment '主键ID'
         primary key,
@@ -183,7 +183,7 @@ create index idx_note_task_status
 create index idx_note_task_user_id
     on note_task (user_id);
 
-create table project_file
+create table if not exists project_file
 (
     id          bigint auto_increment comment '主键ID'
         primary key,
@@ -202,7 +202,7 @@ create index idx_file_id
 create index idx_project_id
     on project_file (project_id);
 
-create table repair_document
+create table if not exists repair_document
 (
     id          int auto_increment
         primary key,
@@ -214,7 +214,7 @@ create table repair_document
     deleted     tinyint(1) default 0 not null
 );
 
-create table user
+create table if not exists user
 (
     id          bigint auto_increment comment '主键ID'
         primary key,
@@ -227,7 +227,7 @@ create table user
 )
     comment '用户表' charset = utf8mb4;
 
-create table project
+create table if not exists project
 (
     id          bigint auto_increment comment '主键ID'
         primary key,
@@ -246,3 +246,4 @@ create table project
 
 create index idx_user_id
     on project (user_id);
+
