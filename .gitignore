@@ -131,3 +131,15 @@ readify_server/src/main/resources/application.yml
 # agi
 /readify_agi/data
 /readify_server/files
+
+# Project documentation and reports
+CLAUDE.md
+CODE_REVIEW.md
+
+# Data directories
+data/
+files/
+infra/milvus-data/
+infra/milvus-etcd/
+infra/milvus-minio/
+infra/mysql-data/
