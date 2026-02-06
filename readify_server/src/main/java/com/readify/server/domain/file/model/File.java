@@ -10,10 +10,11 @@ import lombok.Setter;
 public class File {
     private Long id;
     private String originalName;
-    private String storageName;
+    private String storageKey;
+    private String storageBucket;
+    private String storageType;
     private Long size;
     private String mimeType;
-    private String storagePath;
     private String md5;
     private Long createTime;
     private Long updateTime;

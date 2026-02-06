@@ -41,7 +41,7 @@ class FileSearchService:
         print(f"[文件搜索] 找到文件：{file.original_name}")
             
         # 2. 获取collection名称
-        collection_name = os.path.splitext(file.storage_name)[0]
+        collection_name = os.path.splitext(file.storage_key)[0]
         print(f"[文件搜索] 使用集合名称：{collection_name}")
         
         # 3. 执行向量检索

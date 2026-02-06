@@ -1,10 +1,10 @@
-﻿# 鏍囧噯搴撳鍏?
+# 标准库导入
 import asyncio
 import logging
 import os
 from typing import Any, Dict
 
-# 绗笁鏂瑰簱瀵煎叆
+# 第三方库导入
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 
@@ -68,7 +68,7 @@ def _load_nacos_config() -> Dict[str, Any]:
 
 
 class Settings(BaseSettings):
-    """??????"""
+    """应用配置"""
     DB_HOST: str
     DB_PORT: int
     DB_USER: str
@@ -80,23 +80,29 @@ class Settings(BaseSettings):
     MILVUS_USER: str = os.getenv("MILVUS_USER", "")
     MILVUS_PASSWORD: str = os.getenv("MILVUS_PASSWORD", "")
     MILVUS_DB_NAME: str = os.getenv("MILVUS_DB_NAME", "default")
-    
-    # LlamaParse???
+
+    # LlamaParse配置
     LLAMA_PARSE_API_KEY: str
-    
-    # LLM閰嶇疆 - 缁熶竴鐨勬ā鍨嬮厤缃?
+
+    # LLM配置 - 统一的模型配置
     LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")
     LLM_API_BASE: str = os.getenv("LLM_API_BASE", "https://api.openai.com/v1")
     LLM_MODEL_NAME: str = os.getenv("LLM_MODEL_NAME", "gpt-4o")
 
-    # Embedding妯″瀷閰嶇疆
+    # Embedding模型配置
     EMBEDDING_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     EMBEDDING_API_BASE: str = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
     EMBEDDING_MODEL: str = "text-embedding-3-small"
     FILE_PROCESS_CALLBACK_URL: str = os.getenv("FILE_PROCESS_CALLBACK_URL", "")
     FILE_PROCESS_CALLBACK_API_KEY: str = os.getenv("FILE_PROCESS_CALLBACK_API_KEY", "")
-    
-    # SerpAPI???
+
+    # MinIO / S3 compatible storage
+    MINIO_ENDPOINT: str = os.getenv("MINIO_ENDPOINT", "")
+    MINIO_ACCESS_KEY: str = os.getenv("MINIO_ACCESS_KEY", "")
+    MINIO_SECRET_KEY: str = os.getenv("MINIO_SECRET_KEY", "")
+    MINIO_SECURE: bool = os.getenv("MINIO_SECURE", "false").lower() == "true"
+
+    # SerpAPI配置
     SERPAPI_API_KEY: str = os.getenv("SERPAPI_API_KEY", "")
 
     # Service settings
@@ -114,10 +120,10 @@ class Settings(BaseSettings):
     NACOS_CLUSTER: str = os.getenv("NACOS_CLUSTER", "DEFAULT")
     NACOS_HEARTBEAT_INTERVAL: int = int(os.getenv("NACOS_HEARTBEAT_INTERVAL", "5"))
     NACOS_CONFIG_DATA_ID: str = os.getenv("NACOS_CONFIG_DATA_ID", "")
-    
+
     # Service discovery settings
     READIFY_SERVER_SERVICE_NAME: str = os.getenv("READIFY_SERVER_SERVICE_NAME", "")
-    
+
     @property
     def DATABASE_URL(self) -> str:
         return (
@@ -147,6 +153,3 @@ if _nacos_enabled:
     settings = Settings(**_nacos_config)
 else:
     settings = Settings()
-
-
-

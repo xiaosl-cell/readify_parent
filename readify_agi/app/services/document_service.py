@@ -4,6 +4,7 @@ from app.models.document import DocumentCreate
 from app.repositories.document_repository import DocumentRepository
 from app.services.llama_parse_service import LlamaParseService
 from app.repositories.file_repository import FileRepository
+from app.services.object_storage_service import ObjectStorageService
 import json
 from app.core.config import settings
 import os
@@ -21,6 +22,7 @@ class DocumentService:
         self.document_repository = document_repository
         self.file_repository = file_repository
         self.llama_parse_service = llama_parse_service
+        self.object_storage_service = ObjectStorageService()
         
     async def parse_and_save(self, file_id: int) -> None:
         """
@@ -35,7 +37,18 @@ class DocumentService:
             raise HTTPException(status_code=404, detail="文件不存在")
             
         # 解析文件
-        documents = await self.llama_parse_service.parse_file(file.storage_path)
+        if file.storage_type != "minio":
+            raise HTTPException(status_code=400, detail="Unsupported storage type")
+
+        temp_path = await self.object_storage_service.download_to_temp(
+            file.storage_bucket,
+            file.storage_key
+        )
+        try:
+            documents = await self.llama_parse_service.parse_file(temp_path)
+        finally:
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
         
         print(f"解析文件 '{file.original_name}' (ID:{file_id}) 得到 {len(documents)} 个文档块")
         

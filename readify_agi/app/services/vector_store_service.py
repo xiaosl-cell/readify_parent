@@ -53,8 +53,9 @@ class VectorStoreService:
         connections.connect(alias="default", **connection_args)
 
     def _get_or_create_collection(self, collection_name: str, dim: int) -> Collection:
-        # Milvus collection 名称只能包含字母、数字和下划线，需要规范化
-        # 将连字符和其他非法字符替换为下划线
+        # Milvus collection 名称只能包含字母、数字和下划线，且必须以字母或下划线开头
+        # 添加固定前缀确保名称合法
+        collection_name = f"rf_{collection_name}"
         collection_name = collection_name.replace("-", "_").replace(".", "_")
         # 移除其他非法字符，只保留字母、数字和下划线
         collection_name = re.sub(r'[^a-zA-Z0-9_]', '_', collection_name)
@@ -125,7 +126,8 @@ class VectorStoreService:
         collection_name: str,
         top_k: int = 5,
     ) -> List[Dict[str, Any]]:
-        # Milvus collection 名称只能包含字母、数字和下划线，需要规范化
+        # Milvus collection 名称规范化，与创建时保持一致
+        collection_name = f"rf_{collection_name}"
         collection_name = collection_name.replace("-", "_").replace(".", "_")
         collection_name = re.sub(r'[^a-zA-Z0-9_]', '_', collection_name)
         

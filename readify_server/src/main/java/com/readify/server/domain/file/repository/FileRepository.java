@@ -40,7 +40,7 @@ public interface FileRepository {
     /**
      * 删除物理文件
      */
-    void deletePhysicalFile(String storageName);
+    void deletePhysicalFile(String storageBucket, String storageKey);
 
     /**
      * 更新文件向量化状态

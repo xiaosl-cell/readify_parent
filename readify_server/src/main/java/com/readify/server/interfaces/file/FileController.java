@@ -57,7 +57,7 @@ public class FileController {
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''" +
                 URLEncoder.encode(file.getOriginalName(), StandardCharsets.UTF_8));
 
-        try (InputStream inputStream = fileStorage.retrieve(file.getStorageName());
+        try (InputStream inputStream = fileStorage.retrieve(file.getStorageBucket(), file.getStorageKey());
                 OutputStream outputStream = response.getOutputStream()) {
             // 使用缓冲区复制流
             byte[] buffer = new byte[4096];

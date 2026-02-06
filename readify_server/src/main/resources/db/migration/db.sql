@@ -93,10 +93,11 @@ create table file
     id            bigint auto_increment comment '主键ID'
         primary key,
     original_name varchar(255)         not null comment '原始文件名',
-    storage_name  varchar(100)         not null comment '存储文件名',
+    storage_key    varchar(255)         not null comment '对象存储Key',
+    storage_bucket varchar(100)         not null comment '对象存储桶',
+    storage_type   varchar(20)          not null default 'minio' comment '存储类型',
     size          bigint               not null comment '文件大小(字节)',
     mime_type     varchar(100)         null comment '文件MIME类型',
-    storage_path  varchar(500)         not null comment '存储路径',
     md5           char(32)             null comment '文件MD5值',
     create_time   bigint               not null comment '创建时间',
     update_time   bigint               not null comment '更新时间',
@@ -120,7 +121,7 @@ create table mind_map
     user_id     bigint               not null comment '创建者用户ID',
     created_at  bigint               not null comment '创建时间',
     updated_at  bigint               not null comment '更新时间',
-    is_deleted  tinyint(1) default 0 not null comment '逻辑删除标记，0-未删除，1-已删除'
+    is_deleted  tinyint(1) default 0 not null comment '逻辑删除标记：0-未删除，1-已删除'
 )
     comment '思维导图主表' charset = utf8mb4;
 
@@ -140,7 +141,7 @@ create table mind_map_node
     level        int        default 0 not null comment '节点层级，根节点为0',
     created_time bigint               not null comment '创建时间',
     updated_time bigint               not null comment '更新时间',
-    deleted      tinyint(1) default 0 not null comment '是否删除，0-未删除，1-已删除'
+    deleted      tinyint(1) default 0 not null comment '是否删除：0-未删除，1-已删除'
 )
     comment '思维导图节点表' charset = utf8mb4;
 
@@ -245,4 +246,3 @@ create table project
 
 create index idx_user_id
     on project (user_id);
-

@@ -10,6 +10,7 @@ import com.readify.server.infrastructure.persistence.mapper.FileMapper;
 import com.readify.server.infrastructure.persistence.mapper.ProjectFileMapper;
 import com.readify.server.infrastructure.utils.file.FileStorage;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 import org.springframework.util.DigestUtils;
 
@@ -29,6 +30,12 @@ public class FileRepositoryImpl implements FileRepository {
     private final ProjectFileMapper projectFileMapper;
     private final FileStorage fileStorage;
     private final FileConverter fileConverter = FileConverter.INSTANCE;
+
+    @Value("${readify.file.minio.bucket}")
+    private String storageBucket;
+
+    @Value("${readify.file.storage-type:minio}")
+    private String storageType;
 
     @Override
     public File save(File file) {
@@ -82,30 +89,28 @@ public class FileRepositoryImpl implements FileRepository {
     @Override
     public void deleteById(Long id) {
         FileEntity fileEntity = fileMapper.selectById(id);
-        deletePhysicalFile(fileEntity.getStorageName());
+        deletePhysicalFile(fileEntity.getStorageBucket(), fileEntity.getStorageKey());
         fileMapper.deleteById(id);
     }
 
     @Override
     public File upload(String originalFilename, String mimeType, long size, InputStream inputStream) {
         try {
-            // 将输入流转换为字节数组，这样可以多次使用
+            // Read all bytes to compute MD5 and allow multiple use of the stream.
             byte[] bytes = inputStream.readAllBytes();
 
-            // 计算MD5
             String md5 = DigestUtils.md5DigestAsHex(bytes);
 
-            // 查找是否存在相同的文件
             return findByMd5(md5).orElseGet(() -> {
-                String storageName = generateStorageName(originalFilename);
-                // 使用字节数组创建新的输入流
+                String storageKey = generateStorageKey(originalFilename);
                 try (InputStream newInputStream = new ByteArrayInputStream(bytes)) {
-                    fileStorage.store(storageName, newInputStream);
+                    fileStorage.store(storageBucket, storageKey, newInputStream);
 
                     File file = File.builder()
                             .originalName(originalFilename)
-                            .storageName(storageName)
-                            .storagePath(fileStorage.getStoragePath(storageName).toString())
+                            .storageKey(storageKey)
+                            .storageBucket(storageBucket)
+                            .storageType(storageType)
                             .size(size)
                             .mimeType(mimeType)
                             .md5(md5)
@@ -126,11 +131,11 @@ public class FileRepositoryImpl implements FileRepository {
     }
 
     @Override
-    public void deletePhysicalFile(String storageName) {
-        fileStorage.delete(storageName);
+    public void deletePhysicalFile(String storageBucket, String storageKey) {
+        fileStorage.delete(storageBucket, storageKey);
     }
 
-    private String generateStorageName(String originalFilename) {
+    private String generateStorageKey(String originalFilename) {
         String extension = "";
         int lastDotIndex = originalFilename.lastIndexOf('.');
         if (lastDotIndex > 0) {

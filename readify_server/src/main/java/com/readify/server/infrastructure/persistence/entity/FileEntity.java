@@ -1,46 +1,56 @@
 package com.readify.server.infrastructure.persistence.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
+import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.baomidou.mybatisplus.annotation.TableName;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 @Data
 @TableName("file")
-@Schema(description = "文件实体")
+@Schema(description = "File entity")
 public class FileEntity {
-    
+
     @TableId(type = IdType.AUTO)
-    @Schema(description = "主键ID")
+    @Schema(description = "Primary key")
     private Long id;
 
-    @Schema(description = "原始文件名")
+    @Schema(description = "Original filename")
     private String originalName;
 
-    @Schema(description = "存储文件名")
-    private String storageName;
+    @Schema(description = "Object storage key")
+    @TableField("storage_key")
+    private String storageKey;
 
-    @Schema(description = "文件大小(字节)")
+    @Schema(description = "Object storage bucket")
+    @TableField("storage_bucket")
+    private String storageBucket;
+
+    @Schema(description = "Storage type")
+    @TableField("storage_type")
+    private String storageType;
+
+    @Schema(description = "File size in bytes")
     private Long size;
 
-    @Schema(description = "文件MIME类型")
+    @Schema(description = "MIME type")
     private String mimeType;
 
-    @Schema(description = "存储路径")
-    private String storagePath;
-
-    @Schema(description = "文件MD5值")
+    @Schema(description = "File md5")
     private String md5;
 
-    @Schema(description = "创建时间")
+    @Schema(description = "Create time")
     private Long createTime;
 
-    @Schema(description = "更新时间")
+    @Schema(description = "Update time")
     private Long updateTime;
 
     @TableLogic
-    @Schema(description = "是否删除")
+    @Schema(description = "Deleted")
     private Boolean deleted;
 
-    @Schema(description = "是否已向量化")
+    @Schema(description = "Vectorized")
     private Boolean vectorized;
-} 
+}

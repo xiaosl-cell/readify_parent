@@ -76,7 +76,7 @@ class FileService:
                 continue
                 
             # 计算collection_name
-            collection_name = os.path.splitext(file.storage_name)[0]
+            collection_name = os.path.splitext(file.storage_key)[0]
             
             try:
                 # 执行向量检索

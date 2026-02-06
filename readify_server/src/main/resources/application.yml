@@ -12,9 +12,7 @@ spring:
         server-addr: localhost:8848
         namespace: ca5b6af9-5336-42f7-b68c-515779f79a98
         group: READIFY
-        # 启用服务发现
         enabled: true
-        # 注册服务时使用的服务名（不含group）
         service: ${spring.application.name}
       config:
         server-addr: localhost:8848
@@ -22,12 +20,15 @@ spring:
         group: READIFY
         file-extension: yaml
     loadbalancer:
-      # 启用服务发现和负载均衡
       enabled: true
 
-# readify服务配置
 readify:
   agi-service:
-    # readify-agi服务名（从Nacos服务注册中心获取）
-    # 确保readify-agi服务已注册到Nacos，服务名与此配置一致
     name: readify-agi
+  file:
+    storage-type: minio
+    minio:
+      endpoint: http://localhost:9000
+      access-key: minioadmin
+      secret-key: minioadmin
+      bucket: readify-files

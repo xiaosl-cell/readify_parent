@@ -63,8 +63,8 @@ class FileVectorizeService:
                 texts = [doc.content for doc in documents]
                 print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 文档内容准备完成，共 {len(texts)} 段")
                 
-                # 4. 使用文件storage_name（去除扩展名）作为collection名称
-                collection_name = os.path.splitext(file.storage_name)[0]
+                # 4. 使用文件storage_key（去除扩展名）作为collection名称
+                collection_name = os.path.splitext(file.storage_key)[0]
                 print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] 使用collection名称: {collection_name}")
                 
                 # 5. 向量化并存储
