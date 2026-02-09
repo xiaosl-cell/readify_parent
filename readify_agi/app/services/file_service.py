@@ -1,13 +1,12 @@
 import logging
-import os
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from fastapi import HTTPException
 
 from app.models.file import FileCreate, FileResponse
 from app.repositories.file_repository import FileRepository
 from app.repositories.project_file_repository import ProjectFileRepository
-from app.services.vector_store_service import VectorStoreService
+from app.services.vector_store_service import VectorStoreService, UserRole
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +42,9 @@ class FileService:
 
     async def delete_file(self, file_id: int) -> bool:
         """删除文件"""
+        # 先删除向量数据
+        await self.vector_store_service.delete_by_file_id(file_id)
+        # 再删除文件记录
         result = await self.file_repository.delete_file(file_id)
         if not result:
             raise HTTPException(status_code=404, detail="File not found")
@@ -52,7 +54,9 @@ class FileService:
         self,
         project_id: int,
         input_text: str,
-        top_k: int = 5
+        top_k: int = 5,
+        user_id: Optional[int] = None,
+        user_role: str = UserRole.USER,
     ) -> List[Dict[str, Any]]:
         """
         基于project_id的向量检索方法
@@ -61,6 +65,8 @@ class FileService:
             project_id: 项目ID
             input_text: 输入文本
             top_k: 返回结果数量
+            user_id: 当前用户ID（用于权限过滤）
+            user_role: 用户角色 (user/admin)
 
         Returns:
             List[Dict[str, Any]]: 检索结果列表
@@ -71,29 +77,36 @@ class FileService:
         if not file_ids:
             return []
 
-        all_results = []
+        # 获取已向量化的文件ID列表
+        vectorized_file_ids = []
         for file_id in file_ids:
             file = await self.file_repository.get_file_by_id(file_id)
-            if not file or not file.vectorized:
-                continue
+            if file and file.vectorized:
+                vectorized_file_ids.append(file_id)
 
-            collection_name = os.path.splitext(file.storage_key)[0]
+        if not vectorized_file_ids:
+            return []
 
-            try:
-                results = await self.vector_store_service.search_similar_texts(
-                    query_text=input_text,
-                    collection_name=collection_name,
-                    top_k=top_k
-                )
+        try:
+            # 使用统一的向量搜索，通过 file_ids 过滤
+            results = await self.vector_store_service.search_similar_texts(
+                query_text=input_text,
+                top_k=top_k,
+                user_id=user_id,
+                user_role=user_role,
+                project_id=project_id,
+                file_ids=vectorized_file_ids,
+            )
 
-                for result in results:
-                    result["file_id"] = file.id
-                    result["file_name"] = file.original_name
+            # 补充文件名信息
+            for result in results:
+                fid = result.get("file_id")
+                if fid:
+                    file = await self.file_repository.get_file_by_id(fid)
+                    if file:
+                        result["file_name"] = file.original_name
 
-                all_results.extend(results)
-            except Exception as e:
-                logger.warning("向量检索错误 - 文件ID %d: %s", file_id, str(e))
-                continue
-
-        all_results.sort(key=lambda x: x["distance"])
-        return all_results[:top_k]
+            return results
+        except Exception as e:
+            logger.warning("向量检索错误: %s", str(e))
+            return []

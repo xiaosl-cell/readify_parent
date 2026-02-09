@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 import traceback
 import asyncio
@@ -7,7 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from app.repositories.file_repository import FileRepository
 from app.repositories.document_repository import DocumentRepository
-from app.services.vector_store_service import VectorStoreService
+from app.services.vector_store_service import VectorStoreService, Visibility
 from app.core.database import async_session_maker
 
 logger = logging.getLogger(__name__)
@@ -27,18 +26,28 @@ class FileVectorizeService:
         self.vector_store_service = vector_store_service
         self.thread_pool = ThreadPoolExecutor(max_workers=3)
 
-    async def _vectorize_task(self, file_id: int) -> bool:
+    async def _vectorize_task(
+        self,
+        file_id: int,
+        user_id: int = 0,
+        project_id: int = 0,
+        visibility: str = Visibility.PRIVATE,
+    ) -> bool:
         """
         实际执行向量化的后台任务
 
         Args:
             file_id: 文件ID
+            user_id: 用户ID（用于权限控制）
+            project_id: 项目ID（用于权限控制）
+            visibility: 可见性级别
 
         Returns:
             bool: 是否成功
         """
         start_time = time.time()
-        logger.info("开始处理文件 %d 的向量化任务", file_id)
+        logger.info("开始处理文件 %d 的向量化任务 (user_id=%d, project_id=%d, visibility=%s)",
+                    file_id, user_id, project_id, visibility)
 
         try:
             async with async_session_maker():
@@ -63,13 +72,17 @@ class FileVectorizeService:
                 texts = [doc.content for doc in documents]
                 logger.info("文档内容准备完成，共 %d 段", len(texts))
 
-                collection_name = os.path.splitext(file.storage_key)[0]
-                logger.info("使用collection名称: %s", collection_name)
+                # 先删除旧的向量数据
+                logger.info("删除旧的向量数据...")
+                await self.vector_store_service.delete_by_file_id(file_id)
 
                 logger.info("开始向量化处理...")
                 await self.vector_store_service.batch_vectorize_texts(
                     texts=texts,
-                    collection_name=collection_name
+                    file_id=file_id,
+                    user_id=user_id,
+                    project_id=project_id,
+                    visibility=visibility,
                 )
 
                 end_time = time.time()
@@ -84,18 +97,28 @@ class FileVectorizeService:
             logger.error("堆栈信息:\n%s", traceback.format_exc())
             raise
 
-    async def vectorize_file(self, file_id: int) -> bool:
+    async def vectorize_file(
+        self,
+        file_id: int,
+        user_id: int = 0,
+        project_id: int = 0,
+        visibility: str = Visibility.PRIVATE,
+    ) -> bool:
         """
         在后台启动向量化任务
 
         Args:
             file_id: 文件ID
+            user_id: 用户ID（用于权限控制）
+            project_id: 项目ID（用于权限控制）
+            visibility: 可见性级别
 
         Returns:
             bool: 是否成功启动任务
         """
-        logger.info("正在启动文件 %d 的向量化任务...", file_id)
+        logger.info("正在启动文件 %d 的向量化任务 (user_id=%d, project_id=%d)...",
+                    file_id, user_id, project_id)
         loop = asyncio.get_event_loop()
-        loop.create_task(self._vectorize_task(file_id))
+        loop.create_task(self._vectorize_task(file_id, user_id, project_id, visibility))
         logger.info("向量化任务已进入后台处理队列")
         return True

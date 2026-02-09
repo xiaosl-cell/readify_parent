@@ -130,56 +130,76 @@ class AgentService:
         async def search_files_tool(input_str: str) -> str:
             """
             在项目文件中执行语义搜索
-            
+
             Args:
                 input_str: 输入参数JSON字符串，格式为 {"query": "搜索查询", "top_k": 返回结果数量}
-                
+
             Returns:
                 str: 格式化的搜索结果
             """
+            logger.info("[search_files_tool] 开始执行，输入: %s", input_str)
             try:
                 # 解析输入参数
                 params = json.loads(input_str) if isinstance(input_str, str) else input_str
-                
+                logger.info("[search_files_tool] 解析参数: %s", params)
+
                 # 获取参数
                 query = params.get("query")
                 top_k = params.get("top_k", 5)
-                
+
                 # 确保查询不为空
                 if not query:
+                    logger.warning("[search_files_tool] 查询为空")
                     return "错误: 搜索查询不能为空"
-                
+
                 # 使用当前实例的项目ID
                 project_id = self.project_id
-                
+                logger.info("[search_files_tool] project_id=%s, context=%s", project_id, self.context)
+
                 # 使用文件仓库进行向量检索
                 from app.services.file_service import FileService
+                from app.services.vector_store_service import UserRole
                 file_service = FileService(self.file_repo)
-                
+
+                # 从上下文中获取用户信息
+                user_id = self.context.get("user_id")
+                user_role = self.context.get("user_role", UserRole.USER)
+                logger.info("[search_files_tool] user_id=%s, user_role=%s", user_id, user_role)
+
                 # 执行向量检索
+                logger.info("[search_files_tool] 调用 search_files_by_vector: project_id=%s, query=%s, top_k=%s, user_id=%s, user_role=%s",
+                            project_id, query, top_k, user_id, user_role)
                 results = await file_service.search_files_by_vector(
                     project_id=project_id,
                     input_text=query,
-                    top_k=top_k
+                    top_k=top_k,
+                    user_id=user_id,
+                    user_role=user_role,
                 )
-                
+                logger.info("[search_files_tool] 检索返回 %d 条结果", len(results) if results else 0)
+
                 # 格式化结果
                 if not results:
+                    logger.warning("[search_files_tool] 未找到相关文件内容")
                     return "未找到相关文件内容"
-                    
+
                 formatted_results = []
                 for i, result in enumerate(results, 1):
+                    logger.debug("[search_files_tool] 结果 %d: file_name=%s, distance=%s",
+                                 i, result.get('file_name'), result.get('distance'))
                     formatted_results.append(
                         f"结果 {i}:\n"
                         f"文件: {result['file_name']}\n"
                         f"内容: {result['content']}\n"
                         f"相似度: {1 - result['distance']:.2f}\n"
                     )
-                    
+
                 return "\n".join(formatted_results)
-            except json.JSONDecodeError:
+            except json.JSONDecodeError as e:
+                logger.error("[search_files_tool] JSON解析错误: %s", str(e))
                 return "错误: 无效的JSON格式参数"
             except Exception as e:
+                logger.error("[search_files_tool] 发生错误: %s", str(e), exc_info=True)
                 return f"文件搜索时发生错误: {str(e)}"
 
         return [search_files_tool]

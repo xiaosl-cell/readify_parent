@@ -1,6 +1,5 @@
 package com.readify.server.websocket.handler.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.readify.server.websocket.WebSocketSessionManager;
@@ -29,20 +28,20 @@ import java.util.Optional;
 @Component
 @RequiredArgsConstructor
 public class SendMessageHandler implements WebSocketMessageHandler<SendMessageReq> {
-    
+
     private final WebSocketSessionManager sessionManager;
     private final WebClient webClient;
-    
+
     @Override
     public String supportType() {
         return "sendMessage";
     }
-    
+
     @Override
     public Class<SendMessageReq> getDataType() {
         return SendMessageReq.class;
     }
-    
+
     @Override
     public void processMessage(WebSocketSession session, WebSocketMessage<SendMessageReq> message) {
         Long userId = getUserIdFromSession(session);
@@ -60,7 +59,7 @@ public class SendMessageHandler implements WebSocketMessageHandler<SendMessageRe
                         .queryParam("query", query)
                         .queryParam("project_id", projectId)
                         .queryParam("task_type", req.getTaskType());
-                    
+
                     // 当mindMapId不为null时添加到查询参数
                     if (req.getMindMapId() != null) {
                         Map<String, Object> context = new HashMap<>();
@@ -77,9 +76,11 @@ public class SendMessageHandler implements WebSocketMessageHandler<SendMessageRe
                             throw new RuntimeException("Failed to process context data", e);
                         }
                     }
-                    
+
                     return uriBuilder.build();
                 })
+                .header("X-User-Id", String.valueOf(userId))
+                .header("X-User-Role", "user")
                 .retrieve()
                 .bodyToFlux(new ParameterizedTypeReference<>() {});
 
@@ -125,7 +126,7 @@ public class SendMessageHandler implements WebSocketMessageHandler<SendMessageRe
                         }
                 );
     }
-    
+
     private Long getUserIdFromSession(WebSocketSession session) {
         return (Long) session.getAttributes().get("userId");
     }

@@ -32,6 +32,10 @@ const MAX_MISSED_PONG = 3
 
 // 通过WebSocket查询项目文件
 const queryProjectFiles = () => {
+  if (!props.projectId || props.projectId <= 0) {
+    return
+  }
+
   if (ws.value?.readyState === WebSocket.OPEN) {
     try {
       const queryMessage = {
@@ -217,8 +221,11 @@ const handleWebSocketMessage = (message: any) => {
       emit('message', { type: 'sendMessageResponse', data })
     },
     error: (data) => {
-      emit('message', { type: 'error', data })
-      emit('error', new Error(data.message || '服务器返回错误'))
+      const errorMessage = typeof data === 'string'
+        ? data
+        : (data?.message || '服务器返回错误')
+      emit('message', { type: 'error', data: errorMessage })
+      emit('error', new Error(errorMessage))
     }
   }
 

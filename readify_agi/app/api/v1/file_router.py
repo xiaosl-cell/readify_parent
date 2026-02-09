@@ -1,7 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Query
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
+from app.core.user_context import UserContext, get_user_context
 from app.models.file import FileCreate, FileResponse, FileDB
 from app.repositories.file_repository import FileRepository
 from app.repositories.document_repository import DocumentRepository
@@ -9,7 +10,7 @@ from app.services.file_service import FileService
 from app.services.document_service import DocumentService
 from app.services.llama_parse_service import LlamaParseService
 from app.services.file_vectorize_service import FileVectorizeService
-from app.services.vector_store_service import VectorStoreService
+from app.services.vector_store_service import VectorStoreService, Visibility
 from app.services.file_search_service import FileSearchService
 from app.services.file_process_service import FileProcessService
 from app.services.callback_service import CallbackService
@@ -115,6 +116,9 @@ async def parse_file(
 @router.post("/{file_id}/vectorize")
 async def vectorize_file(
     file_id: int,
+    project_id: Optional[int] = Query(None, description="项目ID"),
+    visibility: str = Query(Visibility.PRIVATE, description="可见性级别: private/project/public"),
+    user_ctx: UserContext = Depends(get_user_context),
     service: FileVectorizeService = Depends(get_file_vectorize_service)
 ) -> dict:
     """
@@ -122,16 +126,26 @@ async def vectorize_file(
 
     Args:
         file_id: 文件ID
+        project_id: 项目ID（可选）
+        visibility: 可见性级别
+        user_ctx: 用户上下文（从请求头自动提取）
 
     Returns:
         dict: 处理结果
     """
     try:
-        await service.vectorize_file(file_id)
+        await service.vectorize_file(
+            file_id,
+            user_id=user_ctx.user_id or 0,
+            project_id=project_id or 0,
+            visibility=visibility,
+        )
         return {
             "message": "向量化任务已启动",
             "file_id": file_id,
             "status": "processing",
+            "user_id": user_ctx.user_id,
+            "visibility": visibility,
             "note": "任务已进入后台处理队列，请稍后查看处理结果"
         }
     except ValueError as e:
@@ -144,6 +158,8 @@ async def search_in_file(
     file_id: int,
     query: str = Query(..., description="搜索文本"),
     top_k: int = Query(5, description="返回结果数量"),
+    project_id: Optional[int] = Query(None, description="项目ID（用于项目级权限过滤）"),
+    user_ctx: UserContext = Depends(get_user_context),
     service: FileSearchService = Depends(get_file_search_service)
 ) -> List[Dict[str, Any]]:
     """
@@ -153,6 +169,8 @@ async def search_in_file(
         file_id: 文件ID
         query: 搜索文本
         top_k: 返回结果数量
+        project_id: 项目ID（用于项目级权限过滤）
+        user_ctx: 用户上下文（从请求头自动提取）
 
     Returns:
         List[Dict[str, Any]]: 搜索结果列表，包含：
@@ -165,6 +183,9 @@ async def search_in_file(
             file_id=file_id,
             query_text=query,
             top_k=top_k,
+            user_id=user_ctx.user_id,
+            user_role=user_ctx.user_role,
+            project_id=project_id,
         )
         return results
     except ValueError as e:
@@ -175,29 +196,42 @@ async def search_in_file(
 @router.post("/{file_id}/process")
 async def process_file(
     file_id: int,
+    project_id: Optional[int] = Query(None, description="项目ID"),
+    visibility: str = Query(Visibility.PRIVATE, description="可见性级别: private/project/public"),
+    user_ctx: UserContext = Depends(get_user_context),
     service: FileProcessService = Depends(get_file_process_service)
 ) -> dict:
     """
     异步处理文件：解析并向量化
-    
+
     该接口会异步执行以下操作：
     1. 解析文件内容（若已有解析结果则覆盖）
     2. 向量化文件内容（若已有向量则覆盖）
     3. 更新文件状态（vectorized=True）
     4. 回调通知第三方接口处理完成
-    
+
     Args:
         file_id: 文件ID
-        
+        project_id: 项目ID（可选）
+        visibility: 可见性级别
+        user_ctx: 用户上下文（从请求头自动提取）
+
     Returns:
         dict: 处理结果
     """
     try:
-        await service.process_file(file_id)
+        await service.process_file(
+            file_id,
+            user_id=user_ctx.user_id or 0,
+            project_id=project_id or 0,
+            visibility=visibility,
+        )
         return {
             "message": "文件处理任务已启动",
             "file_id": file_id,
             "status": "processing",
+            "user_id": user_ctx.user_id,
+            "visibility": visibility,
             "note": "任务已进入后台处理队列，完成后将通过回调接口通知"
         }
     except ValueError as e:
@@ -210,6 +244,7 @@ async def search_in_project(
     project_id: int,
     query: str = Query(..., description="搜索文本"),
     top_k: int = Query(5, description="返回结果数量"),
+    user_ctx: UserContext = Depends(get_user_context),
     service: FileService = Depends(get_file_service)
 ) -> List[Dict[str, Any]]:
     """
@@ -221,6 +256,7 @@ async def search_in_project(
         project_id: 项目ID
         query: 搜索文本
         top_k: 返回结果数量
+        user_ctx: 用户上下文（从请求头自动提取）
 
     Returns:
         List[Dict[str, Any]]: 搜索结果列表，包含：
@@ -233,7 +269,9 @@ async def search_in_project(
         results = await service.search_files_by_vector(
             project_id=project_id,
             input_text=query,
-            top_k=top_k
+            top_k=top_k,
+            user_id=user_ctx.user_id,
+            user_role=user_ctx.user_role,
         )
         return results
     except ValueError as e:

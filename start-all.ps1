@@ -1,4 +1,4 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [switch]$SkipInfra,
     [switch]$SkipAgi,
@@ -101,12 +101,12 @@ function Get-AgiCommand {
 
     $venvPython = Join-Path $Root "readify_agi\.venv\Scripts\python.exe"
     if (Test-Path $venvPython) {
-        return "`"$venvPython`" main.py"
+        return ('"{0}" main.py' -f $venvPython)
     }
 
     $condaPython = Get-CondaEnvPython -EnvName "readify_agi"
     if ($condaPython) {
-        return "`"$condaPython`" main.py"
+        return ('"{0}" main.py' -f $condaPython)
     }
 
     return "python main.py"
@@ -134,19 +134,23 @@ function Get-ServerCommand {
 
     $serverRoot = Join-Path $Root "readify_server"
     $mvnw = Join-Path $serverRoot "mvnw.cmd"
-    if (Test-Path $mvnw) {
+    $mvnwProps = Join-Path $serverRoot ".mvn\wrapper\maven-wrapper.properties"
+
+    if ((Test-Path $mvnw) -and (Test-Path $mvnwProps)) {
         $mvnCmd = "mvnw.cmd"
     } else {
         $mvnCmd = "mvn"
+        if (Test-Path $mvnw) {
+            Write-Warning "检测到 mvnw.cmd 但缺少 .mvn/wrapper 配置，已自动回退到系统 mvn。"
+        }
     }
-    $jarPath = Join-Path $serverRoot "target\readify-0.0.1-SNAPSHOT.jar"
-    $needsBuild = $ForceBuild -or -not (Test-Path $jarPath)
-
-    $command = "cd /d `"$serverRoot`" && "
-    if ($needsBuild) {
-        $command += "call $mvnCmd clean && call $mvnCmd package -DskipTests && "
+    $command = ('cd /d "{0}" && ' -f $serverRoot)
+    if ($ForceBuild) {
+        $command += ('call {0} clean && call {0} package -DskipTests && ' -f $mvnCmd)
+    } else {
+        $command += ('call {0} package -DskipTests && ' -f $mvnCmd)
     }
-    $command += "java -Dfile.encoding=UTF-8 -jar target\readify-0.0.1-SNAPSHOT.jar"
+    $command += 'java -Dfile.encoding=UTF-8 -jar target\readify-0.0.1-SNAPSHOT.jar'
 
     return $command
 }
@@ -173,7 +177,7 @@ if (-not $SkipInfra) {
 if (-not $SkipAgi) {
     $agiRoot = Join-Path $repoRoot "readify_agi"
     $agiCommand = Get-AgiCommand -Root $repoRoot
-    Start-CmdWindow -Title "readify-agi" -Command ("cd /d `"$agiRoot`" && $agiCommand")
+    Start-CmdWindow -Title "readify-agi" -Command ('cd /d "' + $agiRoot + '" && ' + $agiCommand)
 }
 
 if (-not $SkipServer) {
@@ -186,9 +190,9 @@ if (-not $SkipFrontend) {
     $npmCommand = Get-NpmCommand
     $nodeModulesPath = Join-Path $frontendRoot "node_modules"
     if (Test-Path $nodeModulesPath) {
-        $frontendCommand = "call `"$npmCommand`" run dev"
+        $frontendCommand = ('call "' + $npmCommand + '" run dev')
     } else {
-        $frontendCommand = "call `"$npmCommand`" install && call `"$npmCommand`" run dev"
+        $frontendCommand = ('call "' + $npmCommand + '" install && call "' + $npmCommand + '" run dev')
     }
     Start-CmdWindow -Title "readify-frontend" -Command $frontendCommand -WorkingDirectory $frontendRoot
 }
@@ -198,11 +202,12 @@ if (-not $SkipAdmin) {
     $npmCommand = Get-NpmCommand
     $nodeModulesPath = Join-Path $adminRoot "node_modules"
     if (Test-Path $nodeModulesPath) {
-        $adminCommand = "call `"$npmCommand`" run dev"
+        $adminCommand = ('call "' + $npmCommand + '" run dev')
     } else {
-        $adminCommand = "call `"$npmCommand`" install && call `"$npmCommand`" run dev"
+        $adminCommand = ('call "' + $npmCommand + '" install && call "' + $npmCommand + '" run dev')
     }
     Start-CmdWindow -Title "readify-admin" -Command $adminCommand -WorkingDirectory $adminRoot
 }
 
 Write-Host "Done. Service windows should be opening now."
+

@@ -1,9 +1,8 @@
 import logging
-import os
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 
 from app.repositories.file_repository import FileRepository
-from app.services.vector_store_service import VectorStoreService
+from app.services.vector_store_service import VectorStoreService, UserRole
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +23,9 @@ class FileSearchService:
         file_id: int,
         query_text: str,
         top_k: int = 5,
+        user_id: Optional[int] = None,
+        user_role: str = UserRole.USER,
+        project_id: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         """
         在指定文件中搜索相似文本
@@ -32,11 +34,14 @@ class FileSearchService:
             file_id: 文件ID
             query_text: 查询文本
             top_k: 返回结果数量
+            user_id: 当前用户ID（用于权限过滤）
+            user_role: 用户角色 (user/admin)
+            project_id: 当前项目ID（用于项目级权限过滤）
 
         Returns:
             List[Dict[str, Any]]: 搜索结果列表
         """
-        logger.info("[文件搜索] 开始搜索文件 %d", file_id)
+        logger.info("[文件搜索] 开始搜索文件 %d (user_id=%s, role=%s)", file_id, user_id, user_role)
 
         file = await self.file_repository.get_file_by_id(file_id)
         if not file:
@@ -44,15 +49,15 @@ class FileSearchService:
             raise ValueError(f"文件不存在: {file_id}")
         logger.info("[文件搜索] 找到文件：%s", file.original_name)
 
-        collection_name = os.path.splitext(file.storage_key)[0]
-        logger.info("[文件搜索] 使用集合名称：%s", collection_name)
-
         try:
             logger.info("[文件搜索] 开始向量检索...")
             results = await self.vector_store_service.search_similar_texts(
                 query_text=query_text,
-                collection_name=collection_name,
                 top_k=top_k,
+                user_id=user_id,
+                user_role=user_role,
+                project_id=project_id,
+                file_id=file_id,
             )
             logger.info("[文件搜索] 检索完成，返回 %d 条结果", len(results))
             return results

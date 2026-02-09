@@ -11,7 +11,7 @@ from app.services.callback_service import CallbackService
 from app.services.document_service import DocumentService
 from app.services.file_vectorize_service import FileVectorizeService
 from app.services.llama_parse_service import LlamaParseService
-from app.services.vector_store_service import VectorStoreService
+from app.services.vector_store_service import VectorStoreService, Visibility
 
 logger = logging.getLogger(__name__)
 
@@ -33,18 +33,28 @@ class FileProcessService:
         self.vector_store_service = vector_store_service
         self.callback_service = callback_service
 
-    async def _process_task(self, file_id: int) -> bool:
+    async def _process_task(
+        self,
+        file_id: int,
+        user_id: int = 0,
+        project_id: int = 0,
+        visibility: str = Visibility.PRIVATE,
+    ) -> bool:
         """
         实际执行文件处理的后台任务
 
         Args:
             file_id: 文件ID
+            user_id: 用户ID（用于权限控制）
+            project_id: 项目ID（用于权限控制）
+            visibility: 可见性级别
 
         Returns:
             bool: 是否成功
         """
         start_time = time.time()
-        logger.info("开始处理文件 %d 的解析和向量化任务", file_id)
+        logger.info("开始处理文件 %d 的解析和向量化任务 (user_id=%d, project_id=%d, visibility=%s)",
+                    file_id, user_id, project_id, visibility)
 
         success = False
         message = ""
@@ -83,7 +93,12 @@ class FileProcessService:
                 logger.info("文件解析完成")
 
                 logger.info("开始向量化文件...")
-                await file_vectorize_service._vectorize_task(file_id)
+                await file_vectorize_service._vectorize_task(
+                    file_id,
+                    user_id=user_id,
+                    project_id=project_id,
+                    visibility=visibility,
+                )
                 logger.info("文件向量化完成")
 
                 logger.info("更新文件状态...")
@@ -96,7 +111,10 @@ class FileProcessService:
                 message = "文件处理成功"
                 additional_data = {
                     "duration": f"{duration:.2f}秒",
-                    "process_time": int(end_time)
+                    "process_time": int(end_time),
+                    "user_id": user_id,
+                    "project_id": project_id,
+                    "visibility": visibility,
                 }
 
                 logger.info("文件 %d 的处理任务完成", file_id)
@@ -122,18 +140,28 @@ class FileProcessService:
 
         return success
 
-    async def process_file(self, file_id: int) -> bool:
+    async def process_file(
+        self,
+        file_id: int,
+        user_id: int = 0,
+        project_id: int = 0,
+        visibility: str = Visibility.PRIVATE,
+    ) -> bool:
         """
         在后台启动文件处理任务
 
         Args:
             file_id: 文件ID
+            user_id: 用户ID（用于权限控制）
+            project_id: 项目ID（用于权限控制）
+            visibility: 可见性级别
 
         Returns:
             bool: 是否成功启动任务
         """
         try:
-            logger.info("正在启动文件 %d 的处理任务...", file_id)
+            logger.info("正在启动文件 %d 的处理任务 (user_id=%d, project_id=%d)...",
+                        file_id, user_id, project_id)
 
             file = await self.file_repository.get_file_by_id(file_id)
             if not file:
@@ -145,7 +173,9 @@ class FileProcessService:
             except RuntimeError:
                 loop = asyncio.get_event_loop()
 
-            task = loop.create_task(self._process_task(file_id))
+            task = loop.create_task(
+                self._process_task(file_id, user_id, project_id, visibility)
+            )
 
             def handle_task_result(future):
                 try:

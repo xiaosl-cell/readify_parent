@@ -1,6 +1,9 @@
 package com.readify.server.websocket.handler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.readify.server.infrastructure.common.exception.ForbiddenException;
+import com.readify.server.infrastructure.common.exception.NotFoundException;
+import com.readify.server.infrastructure.common.exception.UnauthorizedException;
 import com.readify.server.websocket.WebSocketSessionManager;
 import com.readify.server.websocket.message.WebSocketMessage;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +14,7 @@ import org.springframework.web.socket.WebSocketSession;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 /**
  * WebSocket消息处理器管理类
@@ -62,10 +66,40 @@ public class WebSocketMessageHandlerManager {
             return true;
         } catch (Exception e) {
             log.error("Error handling message of type {}: {}", messageType, e.getMessage(), e);
-            WebSocketMessage<String> errorMessage = WebSocketMessage.create("error", "Failed to process message: " + e.getMessage());
+            WebSocketMessage<String> errorMessage = WebSocketMessage.create("error", buildFriendlyErrorMessage(e));
             sessionManager.sendMessage(session.getId(), errorMessage);
             return false;
         }
+    }
+
+    private String buildFriendlyErrorMessage(Exception exception) {
+        Throwable rootCause = getRootCause(exception);
+
+        if (rootCause instanceof UnauthorizedException) {
+            return "登录状态已失效，请刷新页面后重新登录";
+        }
+
+        if (rootCause instanceof ForbiddenException) {
+            return "无权访问该项目，请确认后重试";
+        }
+
+        if (rootCause instanceof NotFoundException) {
+            return "项目不存在或已被删除";
+        }
+
+        if (rootCause instanceof IllegalArgumentException || rootCause instanceof NoSuchElementException) {
+            return "请求参数不完整，请刷新页面后重试";
+        }
+
+        return "处理请求失败，请稍后重试";
+    }
+
+    private Throwable getRootCause(Throwable throwable) {
+        Throwable current = throwable;
+        while (current.getCause() != null && current.getCause() != current) {
+            current = current.getCause();
+        }
+        return current;
     }
     
     /**

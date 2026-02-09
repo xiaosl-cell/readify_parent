@@ -1,6 +1,7 @@
 package com.readify.server.websocket;
 
 import com.readify.server.infrastructure.security.JwtTokenProvider;
+import com.readify.server.infrastructure.security.UserInfo;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +9,7 @@ import org.springframework.http.server.ServerHttpRequest;
 import org.springframework.http.server.ServerHttpResponse;
 import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.lang.Nullable;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.socket.WebSocketHandler;
@@ -20,7 +22,7 @@ import java.util.Map;
 @Component
 @RequiredArgsConstructor
 public class WebSocketAuthInterceptor implements HandshakeInterceptor {
-    
+
     private final JwtTokenProvider jwtTokenProvider;
 
     @Override
@@ -43,7 +45,7 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
         }
 
         HttpServletRequest servletRequest = ((ServletServerHttpRequest) request).getServletRequest();
-        
+
         // 记录所有请求参数
         log.info("请求参数:");
         Enumeration<String> parameterNames = servletRequest.getParameterNames();
@@ -52,7 +54,7 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
             String paramValue = servletRequest.getParameter(paramName);
             log.info("  {} = {}", paramName, paramValue);
         }
-        
+
         String token = servletRequest.getParameter("token");
         log.info("从请求参数中获取的token: {}", token);
 
@@ -62,18 +64,28 @@ public class WebSocketAuthInterceptor implements HandshakeInterceptor {
         }
 
         try {
-            // 验证token并获取用户ID
-            Long userId = jwtTokenProvider.getUserIdFromToken(token);
-            log.info("Token验证结果 - userId: {}", userId);
-            
+            // 验证token并获取完整的认证信息
+            if (!jwtTokenProvider.validateToken(token)) {
+                log.warn("WebSocket连接被拒绝: 无效的token");
+                return false;
+            }
+
+            Authentication authentication = jwtTokenProvider.getAuthentication(token);
+            Long userId = (Long) authentication.getCredentials();
+            String username = (String) authentication.getPrincipal();
+
+            log.info("Token验证结果 - userId: {}, username: {}", userId, username);
+
             if (userId == null) {
                 log.warn("WebSocket连接被拒绝: 无效的token");
                 return false;
             }
 
-            // 将用户ID存储在WebSocket会话属性中
-            attributes.put("userId", userId);
-            log.info("WebSocket连接已授权，用户ID: {}", userId);
+            // 将完整的用户信息存储在WebSocket会话属性中
+            UserInfo userInfo = new UserInfo(userId, username);
+            attributes.put("userInfo", userInfo);
+            attributes.put("userId", userId);  // 保持向后兼容
+            log.info("WebSocket连接已授权，用户: {}", userInfo);
             return true;
         } catch (Exception e) {
             log.error("WebSocket连接被拒绝: Token验证失败", e);

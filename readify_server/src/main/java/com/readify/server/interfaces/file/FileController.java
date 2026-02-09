@@ -87,8 +87,8 @@ public class FileController {
     }
 
     @PostMapping("/vectorized")
+    @PreAuthorize("hasAuthority('FILE:WRITE')")
     @Operation(summary = "向量化完成回调")
-    @PreAuthorize("hasRole('ADMIN')")
     public Result<Void> vectorizedCompleted(@RequestBody VectorizedCallbackReq req) {
         log.info("Received vectorized callback: {}", req);
         if (!Boolean.TRUE.equals(req.getSuccess())) {

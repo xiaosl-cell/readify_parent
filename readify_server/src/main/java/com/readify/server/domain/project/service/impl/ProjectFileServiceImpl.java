@@ -8,6 +8,7 @@ import com.readify.server.domain.project.repository.ProjectFileRepository;
 import com.readify.server.domain.project.service.ProjectFileService;
 import com.readify.server.domain.project.service.ProjectService;
 import com.readify.server.infrastructure.common.exception.NotFoundException;
+import com.readify.server.infrastructure.common.exception.UnauthorizedException;
 import com.readify.server.infrastructure.security.SecurityUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -62,7 +63,7 @@ public class ProjectFileServiceImpl implements ProjectFileService {
         projectFileRepository.save(projectFile);
 
         // 异步发送文件处理请求
-        sendProcessRequest(uploadedFile.getId())
+        sendProcessRequest(uploadedFile.getId(), currentUserId, projectId)
                 .subscribeOn(Schedulers.boundedElastic())
                 .subscribe(
                         response -> log.info("文件处理请求发送成功：fileId={}", uploadedFile.getId()),
@@ -71,9 +72,15 @@ public class ProjectFileServiceImpl implements ProjectFileService {
         return uploadedFile;
     }
 
-    private Mono<Void> sendProcessRequest(Long fileId) {
+    private Mono<Void> sendProcessRequest(Long fileId, Long userId, Long projectId) {
         return vectorServiceClient.post()
-                .uri("/api/v1/files/{fileId}/process", fileId)
+                .uri(uriBuilder -> uriBuilder
+                        .path("/api/v1/files/{fileId}/process")
+                        .queryParam("project_id", projectId)
+                        .queryParam("visibility", "project")
+                        .build(fileId))
+                .header("X-User-Id", String.valueOf(userId))
+                .header("X-User-Role", "user")
                 .contentType(java.util.Objects.requireNonNull(MediaType.APPLICATION_JSON))
                 .retrieve()
                 .bodyToMono(Void.class)
@@ -90,7 +97,15 @@ public class ProjectFileServiceImpl implements ProjectFileService {
 
     @Override
     public List<File> getProjectFiles(Long projectId) {
-        projectService.getProjectById(projectId, SecurityUtils.getCurrentUserId());
+        return getProjectFiles(projectId, SecurityUtils.getCurrentUserId());
+    }
+
+    @Override
+    public List<File> getProjectFiles(Long projectId, Long userId) {
+        if (userId == null) {
+            throw new UnauthorizedException("用户未登录");
+        }
+        projectService.getProjectById(projectId, userId);
         List<ProjectFile> projectFiles = projectFileRepository.findByProjectId(projectId);
         List<Long> fileIds = projectFiles.stream().map(ProjectFile::getFileId).collect(Collectors.toList());
         if (fileIds.isEmpty()) {

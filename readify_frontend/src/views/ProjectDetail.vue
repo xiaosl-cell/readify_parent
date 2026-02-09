@@ -155,12 +155,13 @@ const projectId = computed(() => {
 })
 
 // 创建一个明确的数字类型的项目ID变量
-const actualProjectId = ref(23); // 默认值23
+const actualProjectId = ref<number>(0)
 
 // 当计算属性projectId变化时，更新actualProjectId
 watch(projectId, (newId) => {
-  actualProjectId.value = Number(newId) || 23;
-}, { immediate: true });
+  const parsedId = Number(newId)
+  actualProjectId.value = !isNaN(parsedId) && parsedId > 0 ? parsedId : 0
+}, { immediate: true })
 
 // 使用provide提供projectId给子组件
 provide('projectId', actualProjectId);
@@ -412,9 +413,20 @@ const handleWebSocketError = (error: any) => {
   
   // 如果WebSocket出错，回退到HTTP请求
   loadProjectFiles()
-  
+
+  const rawMessage =
+    typeof error === 'string'
+      ? error
+      : (error?.message || '')
+
+  const message = rawMessage.includes('用户未登录')
+    ? '登录状态已失效，请刷新页面后重新登录'
+    : rawMessage.includes('Failed to process message:')
+      ? rawMessage.replace('Failed to process message:', '').trim()
+      : (rawMessage || '聊天服务连接异常，请尝试刷新页面')
+
   // 显示错误提示
-  ElMessage.error('聊天服务连接异常，请尝试刷新页面')
+  ElMessage.error(message)
 }
 
 const handleWebSocketConnected = () => {

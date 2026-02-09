@@ -22,4 +22,13 @@ public interface ProjectFileService {
      * @return 文件列表
      */
     List<File> getProjectFiles(Long projectId);
+
+    /**
+     * 获取项目文件列表
+     *
+     * @param projectId 项目ID
+     * @param userId 用户ID
+     * @return 文件列表
+     */
+    List<File> getProjectFiles(Long projectId, Long userId);
 }

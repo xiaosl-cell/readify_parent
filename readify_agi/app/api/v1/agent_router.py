@@ -2,10 +2,12 @@ import asyncio
 import json
 import urllib.parse
 from typing import Dict, Any
+import logging
 
 from fastapi import APIRouter, Query, Depends
 from fastapi.responses import StreamingResponse
 
+from app.core.user_context import UserContext, get_user_context
 from app.repositories.conversation_repository import ConversationRepository
 from app.services.coordinator_agent_service import CoordinatorAgentService
 from app.config.agent_names import AgentNames
@@ -13,12 +15,14 @@ from app.services.ask_agent_service import AskAgentService
 from app.services.note_agent_service import NoteAgentService
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # 创建依赖项函数，用于获取协调Agent服务
 async def get_coordinator_service(
     project_id: int = Query(..., description="工程ID"),
     task_type:str = Query(..., description="任务类型"),
     context: str = Query("{}", description="其他信息"),
+    user_ctx: UserContext = Depends(get_user_context),
 ) -> CoordinatorAgentService:
     """
     获取协调Agent服务实例
@@ -31,7 +35,28 @@ async def get_coordinator_service(
     Returns:
         CoordinatorAgentService: 协调Agent服务实例
     """
-    context_dict = json.loads(urllib.parse.unquote(context))
+    try:
+        decoded_context = urllib.parse.unquote(context)
+        context_dict = json.loads(decoded_context) if decoded_context else {}
+        if not isinstance(context_dict, dict):
+            context_dict = {}
+    except Exception:
+        logger.warning("Invalid context payload, fallback to empty context: %s", context)
+        context_dict = {}
+
+    if user_ctx.user_id is not None:
+        context_dict["user_id"] = user_ctx.user_id
+    if user_ctx.user_role:
+        context_dict["user_role"] = user_ctx.user_role
+
+    logger.info(
+        "Create coordinator context: project_id=%s, task_type=%s, user_id=%s, user_role=%s",
+        project_id,
+        task_type,
+        context_dict.get("user_id"),
+        context_dict.get("user_role"),
+    )
+
     coordinator = CoordinatorAgentService(project_id=project_id, task_type=task_type, context=context_dict)
 
     # 注册专业智能体
