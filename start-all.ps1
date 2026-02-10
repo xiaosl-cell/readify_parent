@@ -134,17 +134,7 @@ function Get-ServerCommand {
     )
 
     $serverRoot = Join-Path $Root "readify_server"
-    $mvnw = Join-Path $serverRoot "mvnw.cmd"
-    $mvnwProps = Join-Path $serverRoot ".mvn\wrapper\maven-wrapper.properties"
-
-    if ((Test-Path $mvnw) -and (Test-Path $mvnwProps)) {
-        $mvnCmd = "mvnw.cmd"
-    } else {
-        $mvnCmd = "mvn"
-        if (Test-Path $mvnw) {
-            Write-Warning "检测到 mvnw.cmd 但缺少 .mvn/wrapper 配置，已自动回退到系统 mvn。"
-        }
-    }
+    $mvnCmd = "mvn"
     $command = ('cd /d "{0}" && ' -f $serverRoot)
     if ($ForceBuild) {
         $command += ('call {0} clean && call {0} package -DskipTests && ' -f $mvnCmd)

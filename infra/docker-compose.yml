@@ -87,3 +87,14 @@
       - "19530:19530"
       - "9091:9091"
     restart: always
+
+  attu:
+    image: zilliz/attu:latest
+    container_name: attu
+    depends_on:
+      - milvus
+    environment:
+      - MILVUS_URL=milvus:19530
+    ports:
+      - "10020:3000"
+    restart: always
