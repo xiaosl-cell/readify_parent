@@ -10,7 +10,7 @@ from fastapi import HTTPException, BackgroundTasks
 import logging
 
 from ragas.dataset_schema import SingleTurnSample
-from ragas.metrics import ExactMatch, AnswerAccuracy, BleuScore, RougeScore, ChrfScore
+from ragas.metrics import ExactMatch, AnswerAccuracy, BleuScore, RougeScore
 from ragas.metrics._factual_correctness import FactualCorrectness
 from ragas.llms import LangchainLLMWrapper
 from langchain_openai import ChatOpenAI
@@ -622,8 +622,6 @@ class EvaluationService:
             return await self._evaluate_bleu(model_output, reference_answer)
         elif strategy == EvaluationStrategy.ROUGE.value:
             return await self._evaluate_rouge(model_output, reference_answer)
-        elif strategy == EvaluationStrategy.CHRF.value:
-            return await self._evaluate_chrf(model_output, reference_answer)
         else:
             raise ValueError(f"不支持的评估策略：{strategy}")
     
@@ -1150,82 +1148,6 @@ class EvaluationService:
         except Exception as e:
             logger.error(f"ROUGE 评估失败: {str(e)}")
             raise Exception(f"ROUGE 评估失败: {str(e)}")
-    
-    async def _evaluate_chrf(
-        self, 
-        model_output: str, 
-        reference_answer: str
-    ) -> Tuple[float, Dict[str, Any]]:
-        """
-        CHRF - 基于字符级 F-score 的评估指标，对形态丰富的语言更友好
-        
-        使用 ragas 的 ChrfScore 指标，通过计算字符 n-gram 的 F-score 来评估
-        response 和 reference 的相似度。
-        
-        CHRF (Character n-gram F-score) 与 BLEU 不同，它：
-        - 使用字符级 n-gram 而非词级
-        - 同时考虑 precision 和 recall
-        - 对形态丰富的语言（如中文、德语）更友好
-        - 对释义和灵活措辞更宽容
-        
-        评分机制：
-        - 基于字符 n-gram（默认 1-6）
-        - 计算 F-score（precision 和 recall 的调和平均）
-        - 范围 0.0-1.0，1.0 表示完美匹配
-        
-        Args:
-            model_output: 模型输出
-            reference_answer: 参考答案
-            
-        Returns:
-            (分数, 详情字典) - 分数范围 0.0-1.0
-        """
-        try:
-            # 检查输入是否为空
-            if not model_output or not reference_answer:
-                logger.warning("模型输出或参考答案为空，CHRF 分数设为 0")
-                return 0.0, {
-                    "method": "ragas_chrf_score",
-                    "model_output": model_output or "",
-                    "reference_answer": reference_answer or "",
-                    "error": "输入为空",
-                    "description": "使用 CHRF 评估基于字符 n-gram 的文本质量"
-                }
-            
-            # 创建 SingleTurnSample 用于 ragas 评估
-            sample = SingleTurnSample(
-                response=model_output,
-                reference=reference_answer
-            )
-            
-            # 创建 ChrfScore 评分器
-            scorer = ChrfScore()
-            
-            # 执行评分
-            score = await scorer.single_turn_ascore(sample)
-            
-            # 构建详情字典
-            details = {
-                "method": "ragas_chrf_score",
-                "metric_type": "character_n-gram_f-score",
-                "n_gram_range": "1-6",
-                "considers_precision_recall": True,
-                "model_output": model_output,
-                "reference_answer": reference_answer,
-                "output_length": len(model_output),
-                "reference_length": len(reference_answer),
-                "output_chars": len(model_output.replace(" ", "")),
-                "reference_chars": len(reference_answer.replace(" ", "")),
-                "description": "CHRF 评分基于字符级 n-gram F-score，对形态丰富的语言和释义更友好"
-            }
-            
-            logger.info(f"CHRF 评估完成: score={score:.4f}")
-            
-            return float(score), details
-            
-        except Exception as e:
-            logger.error(f"CHRF 评估失败: {str(e)}")
-            raise Exception(f"CHRF 评估失败: {str(e)}")
     
     # ============= 辅助方法 =============
 

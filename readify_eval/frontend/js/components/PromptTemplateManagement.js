@@ -2049,8 +2049,7 @@ class PromptTemplateManagement {
             'factual_correctness': '事实正确性',
             'semantic_similarity': '语义相似性',
             'bleu': 'BLEU',
-            'rouge': 'ROUGE',
-            'chrf': 'CHRF'
+            'rouge': 'ROUGE'
         };
         
         const badges = strategies.map(strategy => {

@@ -6,10 +6,10 @@
 const AppConfig = {
     /**
      * API 基础地址配置
-     * 开发环境: http://localhost:8000/api/v1
+     * 开发环境: http://localhost:8082/api/v1
      * 生产环境: 修改为实际的生产环境地址
      */
-    API_BASE_URL: 'http://localhost:8000/api/v1',
+    API_BASE_URL: 'http://localhost:8082/api/v1',
     
     /**
      * 其他可配置项

@@ -21,7 +21,7 @@ class PromptTemplate(BaseEntity, AuditMixin):
     top_p = Column(String(50), nullable=True, comment="核采样参数")
     top_k = Column(String(50), nullable=True, comment="top-k采样参数")
     temperature = Column(String(50), nullable=True, comment="温度参数")
-    evaluation_strategies = Column(JSON, nullable=True, comment="评估策略列表（可多选）：精确匹配、JSON键匹配、答案准确率、事实正确性、语义相似性、BLEU、ROUGE、CHRF")
+    evaluation_strategies = Column(JSON, nullable=True, comment="评估策略列表（可多选）：精确匹配、JSON键匹配、答案准确率、事实正确性、语义相似性、BLEU、ROUGE")
     owner = Column(String(255), nullable=True, comment="负责人")
     qc_number = Column(String(255), nullable=True, comment="QC号")
     prompt_source = Column(String(255), nullable=True, comment="提示词来源")  

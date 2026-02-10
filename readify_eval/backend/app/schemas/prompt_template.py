@@ -90,7 +90,7 @@ class PromptTemplateBase(BaseModel):
     # 评估相关字段  
     evaluation_strategies: Optional[List[EvaluationStrategy]] = Field(
         None,
-        description="评估策略列表（可多选）：精确匹配、JSON键匹配、答案准确率、事实正确性、语义相似性、BLEU、ROUGE、CHRF"
+        description="评估策略列表（可多选）：精确匹配、JSON键匹配、答案准确率、事实正确性、语义相似性、BLEU、ROUGE"
     )
     
     # 新增字段

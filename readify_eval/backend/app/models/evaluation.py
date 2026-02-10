@@ -32,7 +32,6 @@ class EvaluationStrategy(str, enum.Enum):
     SEMANTIC_SIMILARITY = "semantic_similarity"  # 语义相似性 - 使用BERT系列模型计算生成内容与参考答案的语义相似度
     BLEU = "bleu"  # BLEU - 基于n-gram匹配评估生成文本质量，常用于机器翻译
     ROUGE = "rouge"  # ROUGE - 基于召回率的n-gram重叠度量，常用于文本摘要评估
-    CHRF = "chrf"  # CHRF - 基于字符级F-score的评估指标，对形态丰富的语言更友好
 
 
 class EvaluationComparison(BaseEntity, AuditMixin):
