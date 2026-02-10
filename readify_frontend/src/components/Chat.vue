@@ -279,207 +279,8 @@ const formatMessage = (content: string) => {
   }
 }
 
-// 添加消息显示轮询检查变量
-let messageRenderingCheckInterval: number | null = null;
-let renderingChecksCount = 0;
-const MAX_RENDERING_CHECKS = 5;
-
-// 添加消息解析函数，尝试从各种可能的格式中提取有用内容
-const extractMessageContent = (data: any): { type?: string, content?: string } => {
-  console.log('[消息提取] - 尝试从数据中提取有用内容, 数据类型:', typeof data);
-  
-  // 结果对象
-  const result = { type: undefined, content: undefined };
-  
-  // 如果是字符串，尝试解析JSON，如果失败则直接作为内容
-  if (typeof data === 'string') {
-    try {
-      const parsed = JSON.parse(data);
-      // 递归处理解析后的对象
-      const extracted = extractMessageContent(parsed);
-      if (extracted.type) result.type = extracted.type;
-      if (extracted.content) result.content = extracted.content;
-    } catch (e) {
-      // 如果不是有效的JSON，直接使用字符串作为内容
-      result.content = data;
-      
-      // 尝试从字符串中推断类型
-      if (data.includes('[DONE]')) {
-        result.type = '[DONE]';
-      } else if (data.includes('error') || data.includes('错误')) {
-        result.type = 'error';
-      }
-    }
-    return result;
-  }
-  
-  // 如果是对象，尝试从各种可能的字段中提取信息
-  if (data && typeof data === 'object') {
-    // 尝试获取类型信息
-    if (data.type) {
-      result.type = data.type;
-    } else if (data.message_type) {
-      result.type = data.message_type;
-    } else if (data.messageType) {
-      result.type = data.messageType;
-    }
-    
-    // 尝试获取内容
-    if (data.content) {
-      result.content = data.content;
-    } else if (data.message) {
-      result.content = data.message;
-    } else if (data.text) {
-      result.content = data.text;
-    } else if (data.answer) {
-      result.content = data.answer;
-    } else if (data.data) {
-      // 如果有data字段，递归处理
-      const extracted = extractMessageContent(data.data);
-      if (extracted.type) result.type = extracted.type;
-      if (extracted.content) result.content = extracted.content;
-    }
-    
-    // 如果对象本身有多个键，且没有找到有用内容，尝试将整个对象转为字符串
-    if (!result.content && Object.keys(data).length > 0) {
-      try {
-        result.content = JSON.stringify(data);
-      } catch (e) {
-        console.warn('[消息提取] - 无法将对象转为字符串');
-      }
-    }
-  }
-  
-  console.log('[消息提取] - 提取结果:', result);
-  return result;
-}
-
-// 添加辅助函数检查WebSocket消息
-const inspectWebSocketMessage = (data: any): string => {
-  try {
-    console.log('[消息检查] - 开始检查WebSocket消息');
-    
-    // 记录原始消息类型
-    const originalType = typeof data;
-    const result = {
-      messageType: 'unknown',
-      dataType: originalType,
-      hasValidContent: false,
-      contentPreview: '',
-      nestedTypes: []
-    };
-    
-    // 检查对象类型消息
-    if (originalType === 'object' && data !== null) {
-      // 检查是否有type字段
-      if (data.type) {
-        result.messageType = data.type;
-      }
-      
-      // 检查data字段
-      if (data.data) {
-        const dataType = typeof data.data;
-        result.nestedTypes.push(`data:${dataType}`);
-        
-        // 检查嵌套的字符串JSON
-        if (dataType === 'string') {
-          try {
-            const parsedData = JSON.parse(data.data);
-            const parsedType = typeof parsedData;
-            result.nestedTypes.push(`parsed:${parsedType}`);
-            
-            // 检查嵌套对象的类型字段
-            if (parsedType === 'object' && parsedData.type) {
-              result.nestedTypes.push(`nestedType:${parsedData.type}`);
-              
-              // 特别检查final_answer类型
-              if (parsedData.type === 'final_answer' && parsedData.content) {
-                result.hasValidContent = true;
-                result.contentPreview = parsedData.content.substring(0, 50) + 
-                                       (parsedData.content.length > 50 ? '...' : '');
-              }
-            }
-          } catch (e) {
-            result.nestedTypes.push('parseFailed');
-          }
-        } else if (dataType === 'object' && data.data !== null) {
-          // 直接检查嵌套对象
-          if (data.data.type) {
-            result.nestedTypes.push(`nestedType:${data.data.type}`);
-          }
-          
-          if (data.data.content) {
-            result.hasValidContent = true;
-            const contentType = typeof data.data.content;
-            result.nestedTypes.push(`content:${contentType}`);
-            
-            if (contentType === 'string') {
-              result.contentPreview = data.data.content.substring(0, 50) + 
-                                     (data.data.content.length > 50 ? '...' : '');
-            }
-          }
-        }
-      }
-      
-      // 检查直接的content字段
-      if (data.content && typeof data.content === 'string') {
-        result.hasValidContent = true;
-        result.contentPreview = data.content.substring(0, 50) + 
-                               (data.content.length > 50 ? '...' : '');
-      }
-    } else if (originalType === 'string') {
-      // 检查字符串是否是JSON
-      try {
-        const parsed = JSON.parse(data);
-        result.nestedTypes.push(`parsed:${typeof parsed}`);
-        
-        if (typeof parsed === 'object' && parsed !== null) {
-          if (parsed.type) {
-            result.messageType = parsed.type;
-          }
-          
-          if (parsed.content) {
-            result.hasValidContent = true;
-            result.contentPreview = parsed.content.substring(0, 50) + 
-                                   (parsed.content.length > 50 ? '...' : '');
-          }
-        }
-      } catch (e) {
-        // 不是有效的JSON
-        result.nestedTypes.push('notJSON');
-      }
-    }
-    
-    // 记录结果
-    const summary = `消息类型: ${result.messageType}, 数据类型: ${result.dataType}, ` +
-      `嵌套类型: [${result.nestedTypes.join(', ')}], ` +
-      `有效内容: ${result.hasValidContent}, ` +
-      `内容预览: ${result.contentPreview}`;
-    
-    console.log('[消息检查] - 检查结果:', summary);
-    return summary;
-  } catch (error) {
-    console.error('[消息检查] - 检查过程出错:', error);
-    return `检查出错: ${error.message}`;
-  }
-};
-
 // 处理WebSocket消息
 const handleWebSocketMessage = (wsMessage: any) => {
-  console.log('[消息处理] - Chat组件收到WebSocket消息:', 
-    typeof wsMessage === 'object' && wsMessage.type ? wsMessage.type : typeof wsMessage);
-  
-  // 添加更详细的日志，显示确切的消息内容
-  console.log('[消息处理] - Chat组件收到的原始消息数据:', 
-    typeof wsMessage === 'string' ? wsMessage.substring(0, 150) : 
-    JSON.stringify(wsMessage).substring(0, 150));
-  
-  // 添加消息检查工具
-  inspectWebSocketMessage(wsMessage);
-  
-  // 添加调试日志，显示完整消息内容
-  console.log('[消息处理] - 原始消息数据:', JSON.stringify(wsMessage).substring(0, 300));
-  
   // 预处理输入的消息对象，确保它有一个标准的结构
   let processedMessage = wsMessage;
   
@@ -552,9 +353,6 @@ const handleWebSocketMessage = (wsMessage: any) => {
 
             messageProcessed = true;
 
-            // [DONE]消息强制检查消息渲染状态 
-            setTimeout(checkMessageRendering, 300);
-            
             return; // 提前返回，避免进一步处理
           }
           
@@ -664,7 +462,6 @@ const handleWebSocketMessage = (wsMessage: any) => {
             currentThought.value = '';
             currentAnswer.value = '';
             messageProcessed = true;
-            setTimeout(checkMessageRendering, 300);
             return;
           }
 
@@ -747,7 +544,6 @@ const handleWebSocketMessage = (wsMessage: any) => {
           currentThought.value = '';
           currentAnswer.value = '';
           messageProcessed = true;
-          setTimeout(checkMessageRendering, 300);
         }
         // 忽略system类型的消息
         else if (agentMessage.type === 'system') {
@@ -776,162 +572,11 @@ const handleWebSocketMessage = (wsMessage: any) => {
     isSending.value = false;
   }
   
-  // 强制进行视图更新并滚动到底部
+  // 滚动到底部
   nextTick(() => {
-    console.log('[消息处理] - 视图更新后的消息数量:', messages.value.length);
-    // 确保消息容器存在
     if (chatHistory.value) {
       chatHistory.value.scrollTop = chatHistory.value.scrollHeight;
-      console.log('[消息处理] - 已滚动到底部');
-    } else {
-      console.warn('[消息处理] - 无法找到聊天历史容器, chatHistory ref为空');
     }
-    
-    // 增加一个小延迟，确保DOM已更新
-    setTimeout(() => {
-      // 检查消息是否成功渲染
-      checkMessageRendering();
-      
-      // 启动轮询检查机制，确保消息被渲染
-      startRenderingPolling();
-      
-      // 额外检查
-      if (messageProcessed && messages.value.length > 0) {
-        const lastMessage = messages.value[messages.value.length - 1];
-        // 再次强制更新时间戳，触发额外的渲染
-        lastMessage.timestamp = Date.now();
-        console.log('[消息处理] - 执行额外的渲染检查');
-      }
-    }, 100);
-  });
-}
-
-// 添加检查消息渲染状态的函数
-const checkMessageRendering = () => {
-  console.log('[渲染检查] - 检查消息是否成功渲染, 当前消息数:', messages.value.length);
-  if (messages.value.length > 0) {
-    // 获取最后一条消息
-    const lastMessage = messages.value[messages.value.length - 1];
-    
-    // 更新时间戳以触发视图更新
-    lastMessage.timestamp = Date.now();
-    console.log('[渲染检查] - 已更新最后一条消息时间戳');
-    
-    // 延迟检查消息是否正确渲染
-    setTimeout(() => {
-      console.log('[渲染检查] - 进行延迟渲染检查');
-      
-      // 检查DOM中是否有这条消息
-      const messageElements = document.querySelectorAll('.message-content');
-      console.log('[渲染检查] - 当前DOM中的消息元素数:', messageElements.length);
-      
-      // 如果DOM中的消息数量少于messages数组中的数量，尝试强制刷新
-      if (messageElements.length < messages.value.length) {
-        console.warn('[渲染检查] - 检测到DOM中的消息数量少于预期，尝试强制刷新');
-        forceRenderMessages();
-      } else {
-        console.log('[渲染检查] - 消息渲染正常');
-        
-        // 确保再次滚动到底部
-        if (chatHistory.value) {
-          chatHistory.value.scrollTop = chatHistory.value.scrollHeight;
-        }
-      }
-    }, 500);
-  }
-}
-
-// 添加滚动到底部的函数
-const scrollToBottom = () => {
-  if (chatHistory.value) {
-    chatHistory.value.scrollTop = chatHistory.value.scrollHeight;
-    console.log('[滚动] - 已滚动到聊天底部');
-  }
-}
-
-// 修改forceRenderMessages函数，增加更多逻辑
-const forceRenderMessages = () => {
-  console.log('[强制刷新] - 开始强制刷新消息渲染, 当前消息数:', messages.value.length);
-  
-  // 检查是否有需要渲染的消息
-  if (messages.value.length === 0) {
-    console.log('[强制刷新] - 没有消息需要渲染');
-    return;
-  }
-  
-  // 使用一个临时变量存储当前消息
-  const tempMessages = JSON.parse(JSON.stringify(messages.value));
-  
-  // 清空消息数组后再恢复，强制触发视图更新
-  messages.value = [];
-  
-  // 使用nextTick确保DOM已更新
-  nextTick(() => {
-    console.log('[强制刷新] - 消息清空后开始恢复');
-    
-    // 在恢复消息前添加一个小延迟
-    setTimeout(() => {
-      // 恢复消息，并确保每条消息都有最新的时间戳
-      messages.value = tempMessages.map(msg => ({
-        ...msg,
-        timestamp: Date.now() + Math.random() // 添加随机数确保每条消息时间戳不同
-      }));
-      
-      console.log('[强制刷新] - 消息恢复完成, 当前消息数:', messages.value.length);
-      
-      // 使用Vue的nextTick确保视图已更新
-      nextTick(() => {
-        // 滚动到底部
-        if (chatHistory.value) {
-          chatHistory.value.scrollTop = chatHistory.value.scrollHeight;
-          console.log('[强制刷新] - 已滚动到底部');
-        }
-        
-        // 添加CSS动画以触发浏览器重绘
-        const chatHistoryElement = chatHistory.value;
-        if (chatHistoryElement) {
-          chatHistoryElement.style.opacity = '0.99';
-          setTimeout(() => {
-            chatHistoryElement.style.opacity = '1';
-            chatHistoryElement.scrollTop = chatHistoryElement.scrollHeight;
-          }, 50);
-        }
-        
-        // 检查消息是否真正渲染在DOM中
-        setTimeout(() => {
-          const messageElements = document.querySelectorAll('.message-content');
-          console.log('[强制刷新] - DOM中消息元素数:', messageElements.length, 'messages数组长度:', messages.value.length);
-          
-          if (messageElements.length < messages.value.length) {
-            console.warn('[强制刷新] - DOM中消息数量仍少于预期，尝试最终修复方案');
-            
-            // 使用更激进的处理方式
-            try {
-              // 遍历所有消息，强制更新每条消息的内容
-              for (let i = 0; i < messages.value.length; i++) {
-                const originalContent = messages.value[i].content;
-                // 临时修改内容，触发Vue的更新机制
-                messages.value[i].content = originalContent + ' ';
-                // 立即改回原内容
-                setTimeout(() => {
-                  messages.value[i].content = originalContent;
-                }, 10);
-              }
-              
-              // 最终再次滚动到底部
-              setTimeout(() => {
-                if (chatHistory.value) {
-                  chatHistory.value.scrollTop = chatHistory.value.scrollHeight;
-                }
-                console.log('[强制刷新] - 完成最终修复尝试');
-              }, 100);
-            } catch (e) {
-              console.error('[强制刷新] - 最终修复尝试失败:', e);
-            }
-          }
-        }, 300);
-      });
-    }, 100);
   });
 }
 
@@ -1378,57 +1023,20 @@ const forceRefreshHistory = () => {
   return false
 }
 
-// 修改defineExpose部分，添加forceRenderMessages方法
 defineExpose({
   ...exposedMethods,
   loadConversationHistory,
-  forceRefreshHistory,
-  forceRenderMessages
+  forceRefreshHistory
 })
-
-// 存储清理函数的变量
-let cleanupKeydownListener: (() => void) | null = null;
-
-// 创建按键监听器
-const createKeydownListener = () => {
-  const handleKeydown = (event) => {
-    // 按下Ctrl+R或Command+R (Mac)
-    if ((event.ctrlKey || event.metaKey) && event.key === 'r') {
-      event.preventDefault() // 阻止浏览器刷新
-      forceRenderMessages()
-    }
-  }
-  
-  // 添加监听器
-  window.addEventListener('keydown', handleKeydown)
-  
-  // 返回清理函数
-  return () => {
-    window.removeEventListener('keydown', handleKeydown)
-  }
-}
 
 // 组件卸载前清理资源
 onBeforeUnmount(() => {
-  
-  // 清理按键监听器
-  if (typeof cleanupKeydownListener === 'function') {
-    cleanupKeydownListener();
-  }
-  
-  // 清理消息渲染检查轮询
-  stopRenderingPolling();
-  
   // 重置状态
   resetSendingState();
 })
 
 // 组件挂载时检查projectId和初始化，并尝试自加载历史
 onMounted(() => {
-  
-  // 添加按键监听器
-  cleanupKeydownListener = createKeydownListener()
-  
   // 尝试初始化WebSocket连接
   setTimeout(() => {
     const ws = getExistingWebSocket()
@@ -1535,94 +1143,6 @@ const checkAndFixSendingState = () => {
   return false
 }
 
-// 添加启动轮询检查的函数
-const startRenderingPolling = () => {
-  // 清除可能存在的之前的检查
-  stopRenderingPolling();
-  
-  // 重置检查计数
-  renderingChecksCount = 0;
-  
-  // 启动新的轮询检查
-  messageRenderingCheckInterval = window.setInterval(() => {
-    renderingChecksCount++;
-    
-    // 检查DOM中的消息数量
-    const messageElements = document.querySelectorAll('.message-content');
-    
-    if (messageElements.length < messages.value.length) {
-      console.warn('[轮询检查] - 检测到消息未完全渲染，尝试强制刷新');
-      
-      // 尝试不同的刷新策略，根据检查次数递增
-      if (renderingChecksCount <= 2) {
-        // 前两次尝试简单的时间戳更新
-        if (messages.value.length > 0) {
-          messages.value.forEach(msg => {
-            msg.timestamp = Date.now() + Math.random();
-          });
-        }
-      } else if (renderingChecksCount <= 4) {
-        // 第3-4次使用基本的强制刷新
-        forceRenderMessages();
-                } else {
-        // 最后一次使用更激进的DOM操作方法
-        console.warn('[轮询检查] - 尝试最终解决方案');
-        
-        // 尝试直接操作DOM
-        try {
-          const chatHistoryElement = chatHistory.value;
-          if (chatHistoryElement) {
-            // 添加并移除一个临时元素以触发浏览器重绘
-            const tempElement = document.createElement('div');
-            tempElement.style.cssText = 'position:absolute;width:100%;height:1px;';
-            chatHistoryElement.appendChild(tempElement);
-            
-            // 强制布局重新计算
-            void chatHistoryElement.offsetHeight; 
-            
-            // 移除临时元素
-            setTimeout(() => {
-              chatHistoryElement.removeChild(tempElement);
-              // 最后的尝试：完全重建消息数组
-              const tempArray = JSON.parse(JSON.stringify(messages.value));
-              messages.value = [];
-              setTimeout(() => messages.value = tempArray, 100);
-            }, 50);
-          }
-        } catch (error) {
-          console.error('[轮询检查] - DOM操作失败:', error);
-        }
-      }
-    } else {
-      stopRenderingPolling();
-    }
-    
-    // 达到最大检查次数后停止
-    if (renderingChecksCount >= MAX_RENDERING_CHECKS) {
-      stopRenderingPolling();
-      
-      // 如果经过多次尝试仍未渲染成功，显示提示
-      if (messageElements.length < messages.value.length) {
-        console.warn('[轮询检查] - 多次尝试后消息仍未完全渲染');
-        ElMessage({
-          message: '消息显示可能不完整，请尝试按Ctrl+R刷新视图',
-          type: 'warning',
-          duration: 3000
-        });
-      }
-    }
-  }, 800); // 每800ms检查一次
-}
-
-// 添加停止轮询检查的函数
-const stopRenderingPolling = () => {
-  if (messageRenderingCheckInterval !== null) {
-    clearInterval(messageRenderingCheckInterval);
-    messageRenderingCheckInterval = null;
-    console.log('[轮询检查] - 已停止轮询检查');
-  }
-}
-
 // 添加专门处理agentComplete消息的函数
 const handleAgentComplete = () => {
   console.log('[消息完成] - 开始处理代理消息完成');
@@ -1670,20 +1190,10 @@ const handleAgentComplete = () => {
 
     console.log('[消息完成] - 状态重置完成');
     
-    // 5. 强制重新渲染确保显示正确
-                nextTick(() => {
-      console.log('[消息完成] - 强制检查渲染');
-      // 检查所有消息是否已渲染
-      const messageElements = document.querySelectorAll('.message-content');
-      if (messageElements.length < messages.value.length) {
-        console.warn('[消息完成] - 消息未完全渲染，强制刷新');
-        forceRenderMessages();
-      } else {
-        console.log('[消息完成] - 消息已正确渲染');
-        // 仍然确保滚动到底部
-        if (chatHistory.value) {
-          chatHistory.value.scrollTop = chatHistory.value.scrollHeight;
-        }
+    // 5. 滚动到底部
+    nextTick(() => {
+      if (chatHistory.value) {
+        chatHistory.value.scrollTop = chatHistory.value.scrollHeight;
       }
     });
     
