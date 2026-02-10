@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.core.logger import setup_logging
 from app.core.database import init_db, close_db, is_async_db
+from app.core.nacos_client import start_nacos, stop_nacos
 from app.api.v1 import api_router
 from app.services.sentence_bert import get_sentence_bert_service
 from app.services.scheduler import start_scheduler, stop_scheduler
@@ -36,7 +37,9 @@ async def lifespan(app: FastAPI):
     """
     # Startup
     logger.info("Starting up application...")
-    
+
+    await start_nacos()
+
     if is_async_db:
         await init_db()
     else:
@@ -80,7 +83,9 @@ async def lifespan(app: FastAPI):
         await close_db()
     else:
         close_db()
-    
+
+    await stop_nacos()
+
     logger.info("Application shut down successfully")
 
 
@@ -119,7 +124,7 @@ if __name__ == "__main__":
     uvicorn.run(
         "app.main:app",
         host=settings.app.host,
-        port=settings.app.port,
+        port=settings.service.port,
         reload=settings.app.debug,
         log_level=settings.logging.level.lower()
     )

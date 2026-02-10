@@ -6,8 +6,8 @@
 
 ## 使用方法
 
-1. 启动Readify AGI服务器 (默认在 8090 端口)
-2. 访问 http://localhost:8090/static/test_stream.html
+1. 启动Readify AGI服务器 (默认在 8081 端口)
+2. 访问 http://localhost:8081/static/test_stream.html
 3. 在表单中填写测试参数：
    - **工程ID**: 输入需要测试的工程ID
    - **模型厂商**: 选择使用的AI模型厂商 (OpenAI或Anthropic)

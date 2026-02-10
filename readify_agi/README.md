@@ -63,7 +63,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-服务默认在 `http://localhost:8090` 启动
+服务默认在 `http://localhost:8081` 启动
 
 ## 🧩 项目结构
 
@@ -144,7 +144,7 @@ await coordinator.generate_stream_response(
 
 ## 📡 API 接口
 
-访问 `http://localhost:8090/docs` 查看完整的 API 文档
+访问 `http://localhost:8081/docs` 查看完整的 API 文档
 
 ## 🤝 贡献指南
 

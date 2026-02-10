@@ -49,7 +49,7 @@ def create_comparison(
     - 如果评估策略中包含 `answer_accuracy`（答案准确率）或 `factual_correctness`（事实正确性），
       则必须提供 `evaluation_model_id`
     - 评估模型用于调用 LLM 来评估答案的准确性和事实正确性
-    - 其他策略（精确匹配、语义相似性、BLEU、ROUGE、CHRF）不需要评估模型
+    - 其他策略（精确匹配、语义相似性、BLEU、ROUGE）不需要评估模型
     
     系统会自动：
     1. 收集测试任务中所有执行记录配置的评估策略（去重）
@@ -64,7 +64,6 @@ def create_comparison(
     - semantic_similarity: 语义相似性
     - bleu: BLEU
     - rouge: ROUGE
-    - chrf: CHRF
     """
     service = EvaluationService(db)
     return service.create_comparison(comparison_in)

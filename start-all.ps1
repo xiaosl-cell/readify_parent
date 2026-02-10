@@ -5,6 +5,7 @@ param(
     [switch]$SkipServer,
     [switch]$SkipFrontend,
     [switch]$SkipAdmin,
+    [switch]$SkipEval,
     [switch]$RebuildServer
 )
 
@@ -52,7 +53,7 @@ function Get-CondaEnvPython {
     param([string]$EnvName)
 
     $candidates = @()
-    if ($env:CONDA_PREFIX) {
+    if ($env:CONDA_PREFIX -and (Split-Path -Leaf $env:CONDA_PREFIX) -eq $EnvName) {
         $candidates += (Join-Path $env:CONDA_PREFIX "python.exe")
     }
 
@@ -155,6 +156,24 @@ function Get-ServerCommand {
     return $command
 }
 
+function Get-EvalCommand {
+    param([string]$Root)
+
+    $evalRoot = Join-Path $Root "readify_eval\backend"
+
+    $venvPython = Join-Path $evalRoot ".venv\Scripts\python.exe"
+    if (Test-Path $venvPython) {
+        return ('cd /d "{0}" && "{1}" run.py' -f $evalRoot, $venvPython)
+    }
+
+    $condaPython = Get-CondaEnvPython -EnvName "readify-eval"
+    if ($condaPython) {
+        return ('cd /d "{0}" && "{1}" run.py' -f $evalRoot, $condaPython)
+    }
+
+    return ('cd /d "{0}" && python run.py' -f $evalRoot)
+}
+
 Write-Host "Readify one-click starter"
 
 if (-not $SkipInfra) {
@@ -207,6 +226,20 @@ if (-not $SkipAdmin) {
         $adminCommand = ('call "' + $npmCommand + '" install && call "' + $npmCommand + '" run dev')
     }
     Start-CmdWindow -Title "readify_admin" -Command $adminCommand -WorkingDirectory $adminRoot
+}
+
+if (-not $SkipEval) {
+    $evalCommand = Get-EvalCommand -Root $repoRoot
+    Start-CmdWindow -Title "readify-eval-backend" -Command $evalCommand
+
+    # Eval frontend - static HTML served via Python http.server on port 5175
+    $evalFrontendRoot = Join-Path $repoRoot "readify_eval\frontend"
+    $evalFrontendPython = Get-CondaEnvPython -EnvName "readify-eval"
+    if (-not $evalFrontendPython) {
+        $evalFrontendPython = "python"
+    }
+    $evalFrontendCommand = ('cd /d "{0}" && "{1}" -m http.server 5175' -f $evalFrontendRoot, $evalFrontendPython)
+    Start-CmdWindow -Title "readify-eval-frontend" -Command $evalFrontendCommand
 }
 
 Write-Host "Done. Service windows should be opening now."

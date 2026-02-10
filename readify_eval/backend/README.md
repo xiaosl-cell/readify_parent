@@ -103,9 +103,9 @@ python run.py
 
 ### 4. 访问API文档
 
-- Swagger UI: http://localhost:8000/docs
-- ReDoc: http://localhost:8000/redoc
-- OpenAPI JSON: http://localhost:8000/openapi.json
+- Swagger UI: http://localhost:8082/docs
+- ReDoc: http://localhost:8082/redoc
+- OpenAPI JSON: http://localhost:8082/openapi.json
 
 ## 功能模块
 
@@ -281,7 +281,7 @@ export DATABASE_URL="postgresql://..."
 docker build -t readify_eval_flow .
 
 # 运行容器
-docker run -p 8000:8000 readify_eval_flow
+docker run -p 8082:8082 readify_eval_flow
 ```
 
 ### 生产环境建议

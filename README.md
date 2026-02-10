@@ -67,7 +67,7 @@ readify_parent/
 ### 服务通信流程
 
 ```
-前端 (5173) → 后端服务 (8080) → AGI 服务 (8090)
+前端 (5173) → 后端服务 (8080) → AGI 服务 (8081)
                     ↓                ↓
                  Nacos (8848) ← 服务发现与注册
                     ↓
@@ -229,7 +229,7 @@ npm run dev
 
 - **前端应用**: http://localhost:5173
 - **Server Swagger**: http://localhost:8080/swagger-ui.html
-- **AGI OpenAPI**: http://localhost:8090/docs
+- **AGI OpenAPI**: http://localhost:8081/docs
 - **Nacos控制台**: http://localhost:8848/nacos (用户名/密码: nacos/nacos)
 - **MinIO控制台**: http://localhost:9001 (用户名/密码: minioadmin/minioadmin)
 
@@ -254,7 +254,7 @@ npm run preview      # 预览生产构建
 ### AGI服务 (readify_agi)
 ```bash
 pip install -r requirements.txt    # 安装依赖
-python main.py                     # 启动服务 (端口 8090)
+python main.py                     # 启动服务 (端口 8081)
 pytest tests/                      # 运行测试
 ```
 

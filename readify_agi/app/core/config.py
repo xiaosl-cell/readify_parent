@@ -108,7 +108,7 @@ class Settings(BaseSettings):
     # Service settings
     SERVICE_NAME: str = os.getenv("SERVICE_NAME", "readify-agi")
     SERVICE_HOST: str = os.getenv("SERVICE_HOST", "")
-    SERVICE_PORT: int = int(os.getenv("SERVICE_PORT", "8090"))
+    SERVICE_PORT: int = int(os.getenv("SERVICE_PORT", "8081"))
 
     # Nacos settings
     NACOS_ENABLED: bool = False
