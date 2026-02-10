@@ -549,9 +549,9 @@ const handleWebSocketMessage = (wsMessage: any) => {
             currentResponseIndex.value = -1;
             currentThought.value = '';
             currentAnswer.value = '';
-            
+
             messageProcessed = true;
-            
+
             // [DONE]消息强制检查消息渲染状态 
             setTimeout(checkMessageRendering, 300);
             
@@ -561,7 +561,7 @@ const handleWebSocketMessage = (wsMessage: any) => {
           // 处理thought类型消息 - 思考过程
           if (agentMessage.type === 'thought') {
             console.log('[消息处理] - 收到思考过程，内容:', agentMessage.content?.substring(0, 50));
-            
+
             // 累加思考内容
             if (agentMessage.content) {
               currentThought.value += agentMessage.content;
@@ -667,7 +667,7 @@ const handleWebSocketMessage = (wsMessage: any) => {
             setTimeout(checkMessageRendering, 300);
             return;
           }
-          
+
           // 其他情况尝试作为普通消息处理
           agentMessage = {
             type: 'final_answer',
@@ -697,28 +697,28 @@ const handleWebSocketMessage = (wsMessage: any) => {
         // 处理不同类型的消息
         if (agentMessage.type === 'thought') {
           // 思考过程消息
-          if (agentMessage.content) {
-            currentThought.value += agentMessage.content;
-          }
-          
-          // 更新或创建消息
-          if (currentResponseIndex.value === -1) {
-            messages.value.push({
-              content: '思考中...',
-              isUser: false,
-              timestamp: Date.now(),
-              thought: currentThought.value,
-              thoughtExpanded: true
-            });
-            currentResponseIndex.value = messages.value.length - 1;
-          } else {
-            const currentExpanded = messages.value[currentResponseIndex.value].thoughtExpanded !== false;
-            messages.value[currentResponseIndex.value].thought = currentThought.value;
-            messages.value[currentResponseIndex.value].thoughtExpanded = currentExpanded;
-            messages.value[currentResponseIndex.value].timestamp = Date.now();
-          }
-          
-          messageProcessed = true;
+            if (agentMessage.content) {
+              currentThought.value += agentMessage.content;
+            }
+
+            // 更新或创建消息
+            if (currentResponseIndex.value === -1) {
+              messages.value.push({
+                content: '思考中...',
+                isUser: false,
+                timestamp: Date.now(),
+                thought: currentThought.value,
+                thoughtExpanded: true
+              });
+              currentResponseIndex.value = messages.value.length - 1;
+            } else {
+              const currentExpanded = messages.value[currentResponseIndex.value].thoughtExpanded !== false;
+              messages.value[currentResponseIndex.value].thought = currentThought.value;
+              messages.value[currentResponseIndex.value].thoughtExpanded = currentExpanded;
+              messages.value[currentResponseIndex.value].timestamp = Date.now();
+            }
+
+            messageProcessed = true;
         } else if (agentMessage.type === 'final_answer') {
           // 最终答案
           currentAnswer.value = agentMessage.content || '';
@@ -1007,235 +1007,9 @@ const handleSend = async () => {
       try {
         existingWs.send(JSON.stringify(messageData))
         console.log('[Chat.handleSend] - WebSocket消息发送成功!')
-        
-        // 添加测试监听
-        let responseReceived = false
-        let hasReceivedAgentMessage = false // 添加变量跟踪是否收到Agent消息
-        
-        const responseTimeout = setTimeout(() => {
-          if (!responseReceived) {
-          }
-        }, 5000)
-        
-        const responseHandler = (event) => {
-          try {
-            const data = JSON.parse(event.data)
-            
-            // 检查是否是对该消息的回执
-            if (data.id === messageData.id || 
-                (data.type === 'messageSent' || 
-                 data.type === 'sendMessageResponse' || 
-                 data.type === 'agentMessage' ||
-                 data.type === 'agentComplete')) {
-              
-              responseReceived = true
-              
-              // 根据消息类型处理不同的逻辑
-              if (data.type === 'agentMessage') {
-                hasReceivedAgentMessage = true // 标记收到Agent消息
-                
-                // 处理Agent消息内容
-                try {
-                  const messageContent = data.data
-                  console.log('[WebSocket] - 收到Agent消息:', messageContent.substring(0, 50))
-                  
-                  // 尝试解析JSON内容
-                  if (typeof messageContent === 'string' && 
-                      (messageContent.startsWith('{') || messageContent.startsWith('['))) {
-                    try {
-                      const parsedContent = JSON.parse(messageContent)
-                      
-                      if (parsedContent.type === 'thinking' || parsedContent.type === 'thought') {
-                        // 更新思考内容 - 注意thought类型应累加内容
-                        const newThought = parsedContent.content || parsedContent.message || '';
-                        if (parsedContent.type === 'thought') {
-                          // thought类型需要累加内容
-                          currentThought.value += newThought;
-                        } else {
-                          // thinking类型直接替换内容
-                          currentThought.value = newThought;
-                        }
-                        
-                        // 创建或更新显示消息
-                        if (currentResponseIndex.value === -1) {
-                          messages.value.push({
-                            content: '思考中...',
-                            isUser: false,
-                            timestamp: Date.now(),
-                            thought: currentThought.value,
-                            thoughtExpanded: true
-                          })
-                          currentResponseIndex.value = messages.value.length - 1
-                        } else {
-                          // 更新已有消息
-                          const currentExpanded = messages.value[currentResponseIndex.value].thoughtExpanded !== false;
-                          messages.value[currentResponseIndex.value].thought = currentThought.value;
-                          messages.value[currentResponseIndex.value].thoughtExpanded = currentExpanded;
-                          messages.value[currentResponseIndex.value].timestamp = Date.now()
-                        }
-                      } else if (parsedContent.type === 'answer' || parsedContent.type === 'message' || parsedContent.type === 'final_answer') {
-                        // 更新答案内容
-                        currentAnswer.value = parsedContent.content || parsedContent.message || ''
-                        
-                        if (currentResponseIndex.value === -1) {
-                          messages.value.push({
-                            content: currentAnswer.value,
-                            isUser: false,
-                            timestamp: Date.now()
-                          })
-                          currentResponseIndex.value = messages.value.length - 1
-                        } else {
-                          // 更新已有消息
-                          messages.value[currentResponseIndex.value].content = currentAnswer.value
-                          messages.value[currentResponseIndex.value].timestamp = Date.now()
-                          
-                          // 最终答案到达后，折叠思考过程
-                          if (messages.value[currentResponseIndex.value].thought) {
-                            messages.value[currentResponseIndex.value].thoughtExpanded = false;
-                          }
-                        }
-                      } else if (parsedContent.type === '[DONE]') {
-                        // 处理完成消息
-                        console.log('[WebSocket] - 收到[DONE]消息，标记对话完成');
-                        isSending.value = false;
-                        
-                        // 确保内容显示正确
-                        if (currentResponseIndex.value !== -1 && currentResponseIndex.value < messages.value.length) {
-                          const message = messages.value[currentResponseIndex.value];
-                          
-                          // 如果没有最终答案但有思考过程，确保有内容显示
-                          if (!message.content || message.content === '思考中...' || message.content === '正在处理...') {
-                            if (currentThought.value) {
-                              message.content = '处理完成，但没有返回最终答案。';
-                              message.timestamp = Date.now();
-                            }
-                          }
-                          
-                          // 收起思考过程
-                          if (message.thought) {
-                            message.thoughtExpanded = false;
-                          }
-                        }
-                        
-                        // 重置状态
-                        currentResponseIndex.value = -1;
-                        currentThought.value = '';
-                        currentAnswer.value = '';
-                      } else if (parsedContent.type === 'system') {
-                        // 忽略system类型的消息
-                        console.log('[WebSocket] - 收到system消息，忽略渲染:', 
-                          parsedContent.content ? parsedContent.content.substring(0, 50) : '无内容');
-                        // 不对系统消息执行任何渲染操作
-                      } else if (parsedContent.type === 'tool_error') {
-                        // 处理工具错误消息 - 红色显示
-                        console.log('[WebSocket] - 收到工具错误消息:', 
-                          parsedContent.content ? parsedContent.content.substring(0, 50) : '无内容');
-                        const errorContent = parsedContent.content || '工具执行出错';
-                        
-                        // 更新或创建消息
-                        if (currentResponseIndex.value === -1) {
-                          messages.value.push({
-                            content: errorContent,
-                            isUser: false,
-                            isError: true, // 添加错误标记
-                            timestamp: Date.now()
-                          });
-                          currentResponseIndex.value = messages.value.length - 1;
-                        } else {
-                          // 更新已有消息
-                          messages.value[currentResponseIndex.value].content = errorContent;
-                          messages.value[currentResponseIndex.value].isError = true;
-                          messages.value[currentResponseIndex.value].timestamp = Date.now();
-                        }
-                      } else {
-                        // 其他JSON类型，直接显示
-                        updateOrCreateMessage(messageContent)
-                      }
-                    } catch (parseError) {
-                      // JSON解析失败，按纯文本处理
-                        updateOrCreateMessage(messageContent)
-                    }
-                  } else {
-                    // 普通文本消息
-                    updateOrCreateMessage(messageContent)
-                  }
-                  
-                  // 滚动到最新消息
-                  nextTick(() => {
-                    scrollToBottom()
-                  })
-                } catch (e) {
-                  console.error('[WebSocket] - 处理Agent消息时出错:', e)
-                }
-              } else if (data.type === 'agentComplete') {
-                // 处理完成消息
-                console.log('[WebSocket] - 收到完成消息')
-                
-                // 处理消息完成逻辑
-                handleAgentComplete()
-                
-                // 清除超时并移除监听器
-                clearTimeout(responseTimeout)
-                existingWs.removeEventListener('message', responseHandler)
-              } else if (data.type === 'messageSent' || data.type === 'sendMessageResponse') {
-                // 消息发送确认
-                console.log('[WebSocket] - 消息已发送确认:', data.type)
-                
-                clearTimeout(responseTimeout)
-                
-                // 如果没有收到Agent消息，就移除监听器
-                if (!hasReceivedAgentMessage) {
-                  existingWs.removeEventListener('message', responseHandler)
-                  
-                  // 延迟检查是否收到Agent回复
-                  setTimeout(() => {
-                    if (!hasReceivedAgentMessage && currentResponseIndex.value === -1) {
-                      // 添加等待提示
-                      messages.value.push({
-                        content: '消息已发送，等待响应...',
-                        isUser: false,
-                        timestamp: Date.now(),
-                        isSystemMessage: true
-                      })
-                    }
-                  }, 2000)
-                }
-              }
-            }
-          } catch (error) {
-            console.error('[WebSocket] - 响应处理出错:', error)
-          }
-        }
-        
-        // 辅助函数：更新或创建消息
-        const updateOrCreateMessage = (content) => {
-          if (currentResponseIndex.value === -1) {
-            // 创建新消息
-            messages.value.push({
-              content: content,
-              isUser: false,
-              timestamp: Date.now()
-            })
-            currentResponseIndex.value = messages.value.length - 1
-          } else {
-            // 更新现有消息
-            const currentMsg = messages.value[currentResponseIndex.value]
-            
-            // 如果是占位符内容，则替换；否则追加
-            if (currentMsg.content === '思考中...' || currentMsg.content === '正在处理...') {
-              currentMsg.content = content
-            } else {
-              currentMsg.content += content
-            }
-            
-            // 更新时间戳以触发视图更新
-            currentMsg.timestamp = Date.now()
-          }
-        }
-        
-        // 添加临时监听器
-        existingWs.addEventListener('message', responseHandler)
-        
+        // 消息响应统一由 handleWebSocketMessage (Path A) 处理，
+        // 不再注册额外的 responseHandler，避免 thought 内容重复累加。
+
         return // 发送成功后直接返回
       } catch (wsError) {
         console.error('[Chat.handleSend] - 使用WebSocket发送失败:', wsError)
@@ -1262,11 +1036,8 @@ const handleSend = async () => {
       throw new Error('emit is not a function');
     }
     
-    // 使用emit发送事件（保留这一行以保持原有逻辑）
+    // 通过emit通知父组件发送消息（父组件会通过HTTP API或WebSocket发送）
     emit('send-message', question, localProjectId.value)
-    
-    // 直接发送WebSocket消息作为备用方案
-    directSendWebSocketMessage(question)
     
   } catch (error) {
     console.error('[Chat.handleSend] - 发送消息过程中出错:', error)
@@ -1327,242 +1098,15 @@ const directSendWebSocketMessage = (message: string) => {
       }
       
       
-      // 添加临时响应监听器
-      let responseReceived = false
-      let hasReceivedAgentMessage = false // 添加变量跟踪是否收到Agent消息
-      
-      const responseTimeout = setTimeout(() => {
-        if (!responseReceived) {
-        }
-      }, 5000)
-      
-      const responseHandler = (event) => {
-        try {
-          const data = JSON.parse(event.data)
-          
-          // 检查是否是对该消息的回执
-          if (data.id === messageData.id || 
-              (data.type === 'messageSent' || 
-               data.type === 'sendMessageResponse' || 
-               data.type === 'agentMessage' ||
-               data.type === 'agentComplete')) {
-            
-            responseReceived = true
-            
-            // 根据消息类型处理不同的逻辑
-            if (data.type === 'agentMessage') {
-              hasReceivedAgentMessage = true // 标记收到Agent消息
-              
-              // 处理Agent消息内容
-              try {
-                const messageContent = data.data
-                console.log('[WebSocket] - 收到Agent消息:', messageContent.substring(0, 50))
-                
-                // 尝试解析JSON内容
-                if (typeof messageContent === 'string' && 
-                    (messageContent.startsWith('{') || messageContent.startsWith('['))) {
-                  try {
-                    const parsedContent = JSON.parse(messageContent)
-                    
-                    if (parsedContent.type === 'thinking' || parsedContent.type === 'thought') {
-                      // 更新思考内容 - 注意thought类型应累加内容
-                      const newThought = parsedContent.content || parsedContent.message || '';
-                      if (parsedContent.type === 'thought') {
-                        // thought类型需要累加内容
-                        currentThought.value += newThought;
-                      } else {
-                        // thinking类型直接替换内容
-                        currentThought.value = newThought;
-                      }
-                      
-                      // 创建或更新显示消息
-                      if (currentResponseIndex.value === -1) {
-                        messages.value.push({
-                          content: '思考中...',
-                          isUser: false,
-                          timestamp: Date.now(),
-                          thought: currentThought.value,
-                          thoughtExpanded: true
-                        })
-                        currentResponseIndex.value = messages.value.length - 1
-                      } else {
-                        // 更新已有消息
-                        const currentExpanded = messages.value[currentResponseIndex.value].thoughtExpanded !== false;
-                        messages.value[currentResponseIndex.value].thought = currentThought.value;
-                        messages.value[currentResponseIndex.value].thoughtExpanded = currentExpanded;
-                        messages.value[currentResponseIndex.value].timestamp = Date.now()
-                      }
-                    } else if (parsedContent.type === 'answer' || parsedContent.type === 'message' || parsedContent.type === 'final_answer') {
-                      // 更新答案内容
-                      currentAnswer.value = parsedContent.content || parsedContent.message || ''
-                      
-                      if (currentResponseIndex.value === -1) {
-                        messages.value.push({
-                          content: currentAnswer.value,
-                          isUser: false,
-                          timestamp: Date.now()
-                        })
-                        currentResponseIndex.value = messages.value.length - 1
-                      } else {
-                        // 更新已有消息
-                        messages.value[currentResponseIndex.value].content = currentAnswer.value
-                        messages.value[currentResponseIndex.value].timestamp = Date.now()
-                        
-                        // 最终答案到达后，折叠思考过程
-                        if (messages.value[currentResponseIndex.value].thought) {
-                          messages.value[currentResponseIndex.value].thoughtExpanded = false;
-                        }
-                      }
-                    } else if (parsedContent.type === '[DONE]') {
-                      // 处理完成消息
-                      console.log('[WebSocket] - 收到[DONE]消息，标记对话完成');
-                      isSending.value = false;
-                      
-                      // 确保内容显示正确
-                      if (currentResponseIndex.value !== -1 && currentResponseIndex.value < messages.value.length) {
-                        const message = messages.value[currentResponseIndex.value];
-                        
-                        // 如果没有最终答案但有思考过程，确保有内容显示
-                        if (!message.content || message.content === '思考中...' || message.content === '正在处理...') {
-                          if (currentThought.value) {
-                            message.content = '处理完成，但没有返回最终答案。';
-                            message.timestamp = Date.now();
-                          }
-                        }
-                        
-                        // 收起思考过程
-                        if (message.thought) {
-                          message.thoughtExpanded = false;
-                        }
-                      }
-                      
-                      // 重置状态
-                      currentResponseIndex.value = -1;
-                      currentThought.value = '';
-                      currentAnswer.value = '';
-                    } else if (parsedContent.type === 'system') {
-                      // 忽略system类型的消息
-                      console.log('[WebSocket] - 收到system消息，忽略渲染:', 
-                        parsedContent.content ? parsedContent.content.substring(0, 50) : '无内容');
-                      // 不对系统消息执行任何渲染操作
-                    } else if (parsedContent.type === 'tool_error') {
-                      // 处理工具错误消息 - 红色显示
-                      console.log('[WebSocket] - 收到工具错误消息:', 
-                        parsedContent.content ? parsedContent.content.substring(0, 50) : '无内容');
-                      const errorContent = parsedContent.content || '工具执行出错';
-                      
-                      // 更新或创建消息
-                      if (currentResponseIndex.value === -1) {
-                        messages.value.push({
-                          content: errorContent,
-                          isUser: false,
-                          isError: true, // 添加错误标记
-                          timestamp: Date.now()
-                        });
-                        currentResponseIndex.value = messages.value.length - 1;
-                      } else {
-                        // 更新已有消息
-                        messages.value[currentResponseIndex.value].content = errorContent;
-                        messages.value[currentResponseIndex.value].isError = true;
-                        messages.value[currentResponseIndex.value].timestamp = Date.now();
-                      }
-                    } else {
-                      // 其他JSON类型，直接显示
-                      updateOrCreateMessage(messageContent)
-                    }
-                  } catch (parseError) {
-                    // JSON解析失败，按纯文本处理
-                    updateOrCreateMessage(messageContent)
-                  }
-                } else {
-                  // 普通文本消息
-                  updateOrCreateMessage(messageContent)
-                }
-                
-                // 滚动到最新消息
-                nextTick(() => {
-                  scrollToBottom()
-                })
-              } catch (e) {
-                console.error('[WebSocket] - 处理Agent消息时出错:', e)
-              }
-            } else if (data.type === 'agentComplete') {
-              // 处理完成消息
-              console.log('[WebSocket] - 收到完成消息')
-              
-              // 处理消息完成逻辑
-              handleAgentComplete()
-              
-              // 清除超时并移除监听器
-              clearTimeout(responseTimeout)
-              websocketInstance.removeEventListener('message', responseHandler)
-            } else if (data.type === 'messageSent' || data.type === 'sendMessageResponse') {
-              // 消息发送确认
-              console.log('[WebSocket] - 消息已发送确认:', data.type)
-              
-              clearTimeout(responseTimeout)
-              
-              // 如果没有收到Agent消息，就移除监听器
-              if (!hasReceivedAgentMessage) {
-                websocketInstance.removeEventListener('message', responseHandler)
-                
-                // 延迟检查是否收到Agent回复
-                setTimeout(() => {
-                  if (!hasReceivedAgentMessage && currentResponseIndex.value === -1) {
-                    // 添加等待提示
-                    messages.value.push({
-                      content: '消息已发送，等待响应...',
-                      isUser: false,
-                      timestamp: Date.now(),
-                      isSystemMessage: true
-                    })
-                  }
-                }, 2000)
-              }
-            }
-          }
-        } catch (error) {
-          console.error('[WebSocket] - 响应处理出错:', error)
-        }
-      }
-      
-      // 辅助函数：更新或创建消息
-      const updateOrCreateMessage = (content) => {
-        if (currentResponseIndex.value === -1) {
-          // 创建新消息
-          messages.value.push({
-            content: content,
-            isUser: false,
-            timestamp: Date.now()
-          })
-          currentResponseIndex.value = messages.value.length - 1
-        } else {
-          // 更新现有消息
-          const currentMsg = messages.value[currentResponseIndex.value]
-          
-          // 如果是占位符内容，则替换；否则追加
-          if (currentMsg.content === '思考中...' || currentMsg.content === '正在处理...') {
-            currentMsg.content = content
-          } else {
-            currentMsg.content += content
-          }
-          
-          // 更新时间戳以触发视图更新
-          currentMsg.timestamp = Date.now()
-        }
-      }
-      
-      // 添加临时监听器
-      websocketInstance.addEventListener('message', responseHandler)
-      
+      // 消息响应统一由 handleWebSocketMessage (Path A) 处理，
+      // 不再注册额外的 responseHandler，避免 thought 内容重复累加。
+
       try {
         // 发送消息
         const jsonString = JSON.stringify(messageData)
         websocketInstance.send(jsonString)
         return true
       } catch (error) {
-        clearTimeout(responseTimeout)
-        websocketInstance.removeEventListener('message', responseHandler)
         return false
       }
     } else {
@@ -2123,7 +1667,7 @@ const handleAgentComplete = () => {
     currentResponseIndex.value = -1;
     currentThought.value = '';
     currentAnswer.value = '';
-    
+
     console.log('[消息完成] - 状态重置完成');
     
     // 5. 强制重新渲染确保显示正确

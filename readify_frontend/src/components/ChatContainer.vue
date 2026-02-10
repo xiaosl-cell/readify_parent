@@ -4,13 +4,12 @@
       <h3>对话</h3>
     </div>
     <div class="chat-content">
-      <Chat />
+      <slot />
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
-import Chat from './Chat.vue'
 </script>
 
 <style scoped>

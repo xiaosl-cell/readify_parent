@@ -40,8 +40,16 @@ function Wait-ForPort {
 
     $deadline = (Get-Date).AddSeconds($TimeoutSec)
     while ((Get-Date) -lt $deadline) {
-        if (Test-NetConnection -ComputerName $HostName -Port $Port -InformationLevel Quiet) {
-            return $true
+        $tcpClient = New-Object System.Net.Sockets.TcpClient
+        try {
+            $connectTask = $tcpClient.ConnectAsync($HostName, $Port)
+            if ($connectTask.Wait(1000) -and $tcpClient.Connected) {
+                return $true
+            }
+        } catch {
+            # ignore and retry until timeout
+        } finally {
+            $tcpClient.Dispose()
         }
         Start-Sleep -Seconds 2
     }
@@ -233,4 +241,3 @@ if (-not $SkipEval) {
 }
 
 Write-Host "Done. Service windows should be opening now."
-

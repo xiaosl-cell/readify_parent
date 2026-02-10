@@ -164,10 +164,6 @@ class CoordinatorAgentService(AgentService):
                     "completed": False
                 })
 
-                async def sub_agent_callback(data):
-                    if hasattr(self, '_current_callback') and self._current_callback:
-                        await self._current_callback(data)
-
                 if hasattr(agent, 'generate_stream_response'):
                     collected_output = []
                     sub_agent_thoughts = []
@@ -177,7 +173,6 @@ class CoordinatorAgentService(AgentService):
                         content = data.get('content', '')
 
                         if content_type == "thought":
-                            await sub_agent_callback(data)
                             sub_agent_thoughts.append(content)
 
                         if content_type == 'final_answer' and content:

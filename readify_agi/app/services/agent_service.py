@@ -725,7 +725,7 @@ class AgentService:
             context = await self._before_generation(query, callback)
             
             # 开始生成响应
-            async for event in self.agent_executor.astream_events(context, version="v1"):
+            async for event in self.agent_executor.astream_events(context, version="v2"):
                 # 处理事件
                 completed = await self._handle_event(event, callback, self.project_id, query)
                 

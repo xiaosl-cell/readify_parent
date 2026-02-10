@@ -360,6 +360,7 @@ const handleWebSocketMessage = (message: any) => {
       
     case 'agentMessage':
       // 处理Agent发送的消息片段
+      console.log('[ProjectDetail] agentMessage路由: isNoteVisible=', isNoteVisible.value, 'chatRef=', !!chatRef.value)
       if (isNoteVisible.value) {
         // 如果当前在笔记视图，处理思维导图相关消息
         if (noteContainerRef.value && typeof noteContainerRef.value.handleAgentMessage === 'function') {
@@ -367,6 +368,7 @@ const handleWebSocketMessage = (message: any) => {
         }
       } else {
         // 转发给聊天组件
+        console.log('[ProjectDetail] 转发agentMessage给Chat, message.data类型:', typeof message.data)
         chatRef.value?.handleWebSocketMessage?.(message)
       }
       break
