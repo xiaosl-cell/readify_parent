@@ -12,11 +12,13 @@
 
 ## 项目概述
 
-Readify是一个智能阅读笔记助手系统，通过AI技术帮助用户轻松整理知识并生成直观的思维导图。项目采用微服务架构，由三个核心服务组成：
+Readify是一个智能阅读笔记助手系统，通过AI技术帮助用户轻松整理知识并生成直观的思维导图。项目采用微服务架构，由五个核心模块组成：
 
 - **readify_frontend** - 基于 Vue 3 + TypeScript 的前端应用
 - **readify_server** - 基于 Spring Boot 3.2.2 的后端服务（DDD架构）
 - **readify_agi** - 基于 FastAPI 的 AI 服务层（多Agent系统）
+- **readify_admin** - 基于 Vue 3 + TypeScript 的管理后台（RBAC权限管理）
+- **readify_eval** - 评测平台（包含 backend/frontend 两部分）
 
 ## 功能展示
 
@@ -57,6 +59,8 @@ readify_parent/
 ├── readify_frontend/    # Vue 3 前端项目
 ├── readify_server/      # Spring Boot 后端服务
 ├── readify_agi/         # FastAPI AI智能体服务
+├── readify_admin/       # Vue 3 管理后台
+├── readify_eval/        # 评测平台（backend/frontend）
 └── infra/               # 基础设施配置（Docker Compose）
 ```
 
