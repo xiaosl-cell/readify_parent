@@ -9,7 +9,7 @@ app:
 
 # Database Configuration
 database:
-  url: "mysql+pymysql://root:xsl123456@localhost:3306/readify-eval-flow"
+  url: "mysql+pymysql://root:xsl123456@localhost:3306/readify_eval_flow"
   echo: false  # SQL logging controlled by logging level (DEBUG to show SQL)
   pool_size: 5
   max_overflow: 10
@@ -35,4 +35,3 @@ logging:
   console_output: true  # Also output to console
   console_level: "DEBUG"  # Console shows DEBUG and above (including SQL)
   file_level: "INFO"  # File only records INFO and above (no DEBUG/SQL)
-

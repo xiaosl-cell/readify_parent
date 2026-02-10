@@ -7,7 +7,7 @@ FastAPI应用程序，采用分层架构设计，使用SQLAlchemy作为ORM。
 本项目采用清晰的分层架构：
 
 ```
-readify-eval-flow/
+readify_eval_flow/
 ├── app/
 │   ├── __init__.py
 │   ├── main.py                 # FastAPI应用入口
@@ -278,10 +278,10 @@ export DATABASE_URL="postgresql://..."
 
 ```bash
 # 构建镜像
-docker build -t readify-eval-flow .
+docker build -t readify_eval_flow .
 
 # 运行容器
-docker run -p 8000:8000 readify-eval-flow
+docker run -p 8000:8000 readify_eval_flow
 ```
 
 ### 生产环境建议

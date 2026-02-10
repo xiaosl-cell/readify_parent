@@ -198,7 +198,7 @@ if (-not $SkipFrontend) {
 }
 
 if (-not $SkipAdmin) {
-    $adminRoot = Join-Path $repoRoot "readify-admin"
+    $adminRoot = Join-Path $repoRoot "readify_admin"
     $npmCommand = Get-NpmCommand
     $nodeModulesPath = Join-Path $adminRoot "node_modules"
     if (Test-Path $nodeModulesPath) {
@@ -206,7 +206,7 @@ if (-not $SkipAdmin) {
     } else {
         $adminCommand = ('call "' + $npmCommand + '" install && call "' + $npmCommand + '" run dev')
     }
-    Start-CmdWindow -Title "readify-admin" -Command $adminCommand -WorkingDirectory $adminRoot
+    Start-CmdWindow -Title "readify_admin" -Command $adminCommand -WorkingDirectory $adminRoot
 }
 
 Write-Host "Done. Service windows should be opening now."
