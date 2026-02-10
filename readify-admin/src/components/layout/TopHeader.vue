@@ -43,30 +43,40 @@ const handleCommand = (command: string) => {
 
 <style scoped>
 .header {
-  height: 60px;
+  height: 64px;
   width: 100%;
-  background-color: #fff;
+  background-color: rgb(237, 239, 250);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 1px 4px rgba(0, 21, 41, 0.08);
-  padding: 0 20px;
+  padding: 0 32px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
 .page-title {
   font-size: 22px;
   font-weight: 600;
-  color: #333;
+  color: #2c3e50;
 }
 
 .user-dropdown {
   display: flex;
   align-items: center;
   cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.user-dropdown:hover {
+  background-color: #f5f7fa;
 }
 
 .username {
   margin: 0 8px;
-  color: #333;
+  font-size: 14px;
+  color: #606266;
 }
 </style>

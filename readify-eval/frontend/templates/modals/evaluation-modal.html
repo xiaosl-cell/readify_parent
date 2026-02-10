@@ -1,0 +1,89 @@
+<div class="modal fade" id="evaluationModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="evaluationModalLabel">创建评估对比</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="evaluationForm">
+                    <input type="hidden" id="evaluationRowId">
+                    
+                    <!-- 对比名称 -->
+                    <div class="mb-3">
+                        <label for="comparisonName" class="form-label">
+                            <i class="fas fa-tag"></i> 对比名称 <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="comparisonName" required >
+                    </div>
+
+                    <!-- 对比描述 -->
+                    <div class="mb-3">
+                        <label for="comparisonDescription" class="form-label">
+                            <i class="fas fa-align-left"></i> 对比描述
+                        </label>
+                        <textarea class="form-control" id="comparisonDescription" rows="3"></textarea>
+                    </div>
+
+                    <!-- 测试任务 -->
+                    <div class="mb-3">
+                        <label for="testTaskSelect" class="form-label">
+                            <i class="fas fa-tasks"></i> 测试任务 <span class="text-danger">*</span>
+                        </label>
+                        <select class="form-select" id="testTaskSelect" required>
+                            <option value="">请选择测试任务（已完成的测试任务）</option>
+                        </select>
+                        <div class="form-text">选择要评估的测试任务，系统将根据执行记录中配置的评估策略进行评估</div>
+                    </div>
+                    
+                    <!-- 评估模型 -->
+                    <div class="mb-3">
+                        <label for="evaluationModelSelect" class="form-label">
+                            <i class="fas fa-brain"></i> 评估模型 <span class="text-muted" id="evaluationModelRequired"></span>
+                        </label>
+                        <select class="form-select" id="evaluationModelSelect">
+                            <option value="">请选择评估模型（用于 LLM 评估策略）</option>
+                        </select>
+                        <div class="form-text">
+                            当评估策略包含"答案准确率"或"事实正确性"时，需要选择评估模型来进行 LLM 评估
+                        </div>
+                    </div>
+                    
+                    <!-- 评估策略说明 -->
+                    <div class="alert alert-info" id="evaluationStrategiesInfo" style="display: none;">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>评估策略：</strong>
+                        <span id="evaluationStrategiesDisplay">-</span>
+                        <div class="form-text mt-1">策略来自测试任务执行记录中保存的提示词模板配置</div>
+                    </div>
+
+                    <!-- 备注 -->
+                    <div class="mb-3">
+                        <label for="evaluationRemarks" class="form-label">
+                            <i class="fas fa-comment"></i> 备注信息
+                        </label>
+                        <textarea class="form-control" id="evaluationRemarks" rows="2" 
+                                  ></textarea>
+                    </div>
+
+                    <div class="alert alert-info mb-0">
+                        <i class="fas fa-info-circle"></i> 
+                        <strong>提示：</strong>
+                        <ul class="mb-0 mt-2">
+                            <li>只能选择状态为"已完成"的测试任务</li>
+                            <li>评估策略自动从执行记录中提取，无需手动指定</li>
+                            <li>支持多种评估策略：精确匹配、答案准确率 ⚠️、事实正确性 ⚠️、语义相似性、BLEU、ROUGE、CHRF</li>
+                            <li>⚠️ 标记的策略需要选择评估模型来进行 LLM 评估</li>
+                            <li>创建后需要手动启动评估，系统将根据不同策略分别评估每个执行记录</li>
+                        </ul>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveEvaluation">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+

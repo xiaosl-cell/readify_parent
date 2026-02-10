@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Readify Eval - 管理平台</title>
+    
+    <!-- Bootstrap CSS (本地) -->
+    <link href="vendor/bootstrap/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome (本地) -->
+    <link href="vendor/fontawesome/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar navbar-expand-lg readify-navbar">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-robot"></i> Readify Eval
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-page="ai-models">
+                            <i class="fas fa-brain"></i> 模型管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="prompt-templates">
+                            <i class="fas fa-file-alt"></i> 提示词模板
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="prompt-use-cases">
+                            <i class="fas fa-tasks"></i> 提示词用例
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="test-tasks">
+                            <i class="fas fa-vial"></i> 测试任务
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="evaluations">
+                            <i class="fas fa-chart-bar"></i> 结果评估
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-page="system-configs">
+                            <i class="fas fa-cog"></i> 系统配置
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主内容区域 -->
+    <div class="container-fluid" style="padding: 24px 32px;">
+        <div id="content-area">
+            <!-- 动态加载的内容 -->
+        </div>
+    </div>
+
+    <!-- 模态框容器 -->
+    <div id="modal-container">
+        <!-- 动态加载的模态框 -->
+    </div>
+
+    <!-- jQuery (本地) -->
+    <script src="vendor/jquery/jquery-3.7.0.min.js"></script>
+    <!-- Bootstrap JS (本地) -->
+    <script src="vendor/bootstrap/bootstrap.bundle.min.js"></script>
+    
+    <!-- 配置文件 -->
+    <script src="js/config.js"></script>
+    
+    <!-- 工具类 -->
+    <script src="js/utils/TemplateLoader.js"></script>
+    <script src="js/utils/UIHelper.js"></script>
+    
+    <!-- 服务层 -->
+    <script src="js/services/ApiService.js"></script>
+    
+    <!-- 组件 -->
+    <script src="js/components/AIModelManagement.js"></script>
+    <script src="js/components/PromptTemplateManagement.js"></script>
+    <script src="js/components/PromptUseCaseManagement.js"></script>
+    <script src="js/components/SystemConfigManagement.js"></script>
+    <script src="js/components/ExampleManagement.js"></script>
+    <script src="js/components/TestTaskManagement.js"></script>
+    <script src="js/components/EvaluationManagement.js"></script>
+    
+    <!-- 核心 -->
+    <script src="js/core/Router.js"></script>
+    
+    <!-- 主应用 -->
+    <script src="js/app.js"></script>
+</body>
+</html>

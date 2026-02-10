@@ -1,0 +1,75 @@
+<!-- 模态框：创建/编辑提示词用例 -->
+<div class="modal fade" id="promptUseCaseModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="promptUseCaseModalLabel">添加提示词用例</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="promptUseCaseForm">
+                    <input type="hidden" id="useCaseRowId" name="id">
+                    
+                    <div class="row">
+                        <!-- 左侧：表单 -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="useCaseName" class="form-label">用例名称 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="useCaseName" name="use_case_name" required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="useCaseTemplateId" class="form-label">关联模板 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="useCaseTemplateId" name="template_id" required>
+                                    <option value="">请选择提示词模板</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">模板变量</label>
+                                <div id="variablesContainer">
+                                    <p class="text-muted">请先选择模板</p>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="useCaseReferenceAnswer" class="form-label">参考答案</label>
+                                <div class="d-flex gap-2 mb-2">
+                                    <select class="form-select flex-grow-1" id="aiModelSelect">
+                                        <option value="">选择AI模型生成参考答案...</option>
+                                    </select>
+                                    <button class="btn btn-primary" type="button" id="generateReferenceAnswer" disabled style="min-width: 120px;">
+                                        <i class="fas fa-magic me-1"></i>模型生成
+                                    </button>
+                                </div>
+                                <textarea class="form-control" id="useCaseReferenceAnswer" name="reference_answer" rows="6" placeholder="输入参考答案..."></textarea>
+                                <div class="form-text">可选：用于评估的参考答案或标准答案。选择AI模型并填写完变量后可自动生成</div>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="useCaseRemarks" class="form-label">备注</label>
+                                <textarea class="form-control" id="useCaseRemarks" name="remarks" rows="3" placeholder="输入备注信息..."></textarea>
+                                <div class="form-text">可选：关于该用例的额外说明</div>
+                            </div>
+                        </div>
+
+                        <!-- 右侧：模板预览 -->
+                        <div class="col-md-6">
+                            <div class="template-preview-panel">
+                                <h6 class="mb-3">模板预览</h6>
+                                <div id="templatePreview">
+                                    <p class="text-muted">请选择模板</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="savePromptUseCase">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+

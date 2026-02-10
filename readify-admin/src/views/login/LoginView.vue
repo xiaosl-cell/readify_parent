@@ -93,18 +93,22 @@ const handleLogin = async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
 }
 
 .login-card {
   width: 400px;
   padding: 20px;
+  border-radius: 8px;
 }
 
 .login-title {
   text-align: center;
   margin-bottom: 30px;
-  color: #333;
+  font-weight: 600;
+  background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .login-btn {

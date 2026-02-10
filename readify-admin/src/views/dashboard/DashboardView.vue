@@ -86,12 +86,12 @@ onMounted(async () => {
 .stat-value {
   font-size: 32px;
   font-weight: 600;
-  color: #333;
+  color: #2c3e50;
 }
 
 .stat-label {
   font-size: 14px;
-  color: #999;
+  color: #606266;
   margin-top: 4px;
 }
 </style>

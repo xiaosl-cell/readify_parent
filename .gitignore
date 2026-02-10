@@ -130,6 +130,8 @@ readify_server/src/main/resources/application.yml
 
 # agi
 /readify_agi/data
+/readify_agi/alembic.ini
+/readify_agi/migrations/
 /readify_server/files
 
 # Project documentation and reports

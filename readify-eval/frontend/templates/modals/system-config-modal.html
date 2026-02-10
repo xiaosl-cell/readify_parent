@@ -1,0 +1,43 @@
+<!-- 模态框：创建/编辑系统配置 -->
+<div class="modal fade" id="systemConfigModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="systemConfigModalLabel">添加系统配置</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="systemConfigForm">
+                    <input type="hidden" id="configRowId" name="id">
+                    
+                    <div class="mb-3">
+                        <label for="configCode" class="form-label">配置编码 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="configCode" name="config_code" required>
+                        <div class="form-text">唯一的配置编码，创建后不可修改</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="configName" class="form-label">配置名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="configName" name="config_name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="configDescription" class="form-label">配置描述</label>
+                        <textarea class="form-control" id="configDescription" name="config_description" rows="3" placeholder="输入配置描述..."></textarea>
+                        <div class="form-text">可选：关于该配置的说明</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="configContent" class="form-label">配置内容 <span class="text-danger">*</span></label>
+                        <textarea class="form-control config-textarea" id="configContent" name="config_content" rows="10" placeholder="输入配置内容...&#10;支持纯文本或JSON格式" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveSystemConfig">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+

@@ -1,0 +1,66 @@
+<div class="page-header">
+    <h2><i class="fas fa-vial"></i> 测试任务管理</h2>
+    <p class="text-muted">管理和执行测试任务，批量测试提示词用例</p>
+</div>
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0">测试任务列表</h5>
+        </div>
+        <button id="addTestTask" class="btn btn-primary">
+            <i class="fas fa-plus"></i> 创建测试任务
+        </button>
+    </div>
+    
+    <div class="card-body">
+        <!-- 筛选区域 -->
+        <div class="filter-section mb-4">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <input type="text" 
+                           class="form-control" 
+                           id="searchKeyword" 
+                           placeholder="搜索任务名称、描述、备注...">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="statusFilter">
+                        <option value="">全部状态</option>
+                        <option value="pending">待执行</option>
+                        <option value="running">执行中</option>
+                        <option value="completed">已完成</option>
+                        <option value="cancelled">已取消</option>
+                        <option value="partial">部分完成</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" id="aiModelFilter">
+                        <option value="">全部AI模型</option>
+                        <!-- 动态加载 -->
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <div class="btn-group w-100" role="group">
+                        <button id="applyTestTaskFilters" class="btn btn-outline-primary">
+                            <i class="fas fa-search"></i> 查询
+                        </button>
+                        <button id="resetTestTaskFilters" class="btn btn-outline-secondary">
+                            <i class="fas fa-redo"></i> 重置
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 表格区域 -->
+        <div id="testTasksTableContent">
+            <div class="loading">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+                <p class="mt-3">加载数据中...</p>
+            </div>
+        </div>
+    </div>
+</div>
+

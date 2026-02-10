@@ -1,0 +1,58 @@
+<div class="page-header">
+    <h2><i class="fas fa-file-alt"></i> 提示词模板管理</h2>
+    <button class="btn btn-primary" id="addPromptTemplate">
+        <i class="fas fa-plus"></i> 添加模板
+    </button>
+</div>
+
+<!-- 过滤和搜索 -->
+<div class="filter-section">
+    <div class="row mb-3">
+        <div class="col-md-8">
+            <input type="text" class="form-control" id="searchKeyword" placeholder="搜索模板名称、系统提示词、用户提示词、功能分类、负责人、QC号、提示词来源或备注...">
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-primary w-100" id="applyTemplateFilters">
+                <i class="fas fa-search"></i> 搜索
+            </button>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-secondary w-100" id="resetTemplateFilters">
+                <i class="fas fa-redo"></i> 重置
+            </button>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="mb-2">
+                <label for="filterOwner" class="form-label small">负责人</label>
+                <input type="text" class="form-control form-control-sm" id="filterOwner" placeholder="按负责人过滤...">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="mb-2">
+                <label for="filterQcNumber" class="form-label small">QC号</label>
+                <input type="text" class="form-control form-control-sm" id="filterQcNumber" placeholder="按QC号过滤...">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="mb-2">
+                <label for="filterPromptSource" class="form-label small">提示词来源</label>
+                <input type="text" class="form-control form-control-sm" id="filterPromptSource" placeholder="按提示词来源过滤...">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 数据表格 -->
+<div class="table-container">
+    <div id="promptTemplatesTableContent">
+        <div class="loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <p class="mt-3">加载数据中...</p>
+        </div>
+    </div>
+</div>
+

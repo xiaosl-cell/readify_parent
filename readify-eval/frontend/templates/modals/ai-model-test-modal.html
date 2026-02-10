@@ -1,0 +1,43 @@
+<!-- 模态框：测试AI模型 -->
+<div class="modal fade" id="aiModelTestModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title">测试AI模型</h5>
+                    <div class="small text-muted" id="testModelMeta"></div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="testModelId">
+                <div class="mb-3">
+                    <label class="form-label">模型信息</label>
+                    <div class="p-3 border rounded bg-light" id="testModelInfo">
+                        <div><strong>名称：</strong><span id="testModelName">-</span></div>
+                        <div><strong>ID：</strong><code id="testModelCode">-</code></div>
+                        <div><strong>类别：</strong><span id="testModelCategory">-</span></div>
+                        <div><strong>Endpoint：</strong><span id="testModelEndpoint">-</span></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="testPromptInput" class="form-label">测试提示词 <span class="text-danger">*</span></label>
+                    <textarea class="form-control" id="testPromptInput" rows="3" placeholder="请输入要发送给模型的提示词"></textarea>
+                    <div class="form-text">通过后端的 /ai-models/{id}/chat 接口调用 chatCompletion。</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">返回结果</label>
+                    <textarea class="form-control" id="testResponseOutput" rows="8" placeholder="调用结果将显示在这里" readonly></textarea>
+                    <div class="text-muted small mt-1" id="testModelResultStatus"></div>
+                </div>
+                <div class="alert alert-danger d-none" id="testModelError"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                <button type="button" class="btn btn-primary" id="runModelTest">
+                    <i class="fas fa-play"></i> 发送测试
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

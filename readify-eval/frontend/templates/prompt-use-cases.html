@@ -1,0 +1,43 @@
+<div class="page-header">
+    <h2><i class="fas fa-tasks"></i> 提示词用例管理</h2>
+    <button class="btn btn-primary" id="addPromptUseCase">
+        <i class="fas fa-plus"></i> 添加用例
+    </button>
+</div>
+
+<!-- 过滤和搜索 -->
+<div class="filter-section">
+    <div class="row">
+        <div class="col-md-5">
+            <input type="text" class="form-control" id="searchUseCaseKeyword" placeholder="搜索用例名称或备注...">
+        </div>
+        <div class="col-md-3">
+            <select class="form-select" id="filterTemplateId">
+                <option value="">全部模板</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-primary w-100" id="applyUseCaseFilters">
+                <i class="fas fa-search"></i> 搜索
+            </button>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-secondary w-100" id="resetUseCaseFilters">
+                <i class="fas fa-redo"></i> 重置
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 数据表格 -->
+<div class="table-container">
+    <div id="promptUseCasesTableContent">
+        <div class="loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <p class="mt-3">加载数据中...</p>
+        </div>
+    </div>
+</div>
+

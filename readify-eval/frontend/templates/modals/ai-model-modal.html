@@ -1,0 +1,55 @@
+<!-- 模态框：创建/编辑AI模型 -->
+<div class="modal fade" id="aiModelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="aiModelModalLabel">添加AI模型</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="aiModelForm">
+                    <input type="hidden" id="modelRowId" name="id">
+                    <div class="mb-3">
+                        <label for="modelName" class="form-label">模型名称 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="modelName" name="model_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modelId" class="form-label">模型ID <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="modelId" name="model_id" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="apiEndpoint" class="form-label">API端点 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="apiEndpoint" name="api_endpoint" required>
+                        <div class="form-text">例如：https://api.openai.com</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="apiKey" class="form-label">API密钥</label>
+                        <div class="input-group">
+                            <input type="password" class="form-control" id="apiKey" name="api_key" placeholder="输入API密钥（可选）">
+                            <button class="btn btn-outline-secondary" type="button" id="toggleApiKey">
+                                <i class="fas fa-eye" id="toggleApiKeyIcon"></i>
+                            </button>
+                        </div>
+                        <div class="form-text">调用模型的API密钥，无则随意填</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modelCategory" class="form-label">模型类别</label>
+                        <select class="form-select" id="modelCategory" name="category">
+                            <option value="Instruction">指令模型 (Instruction)</option>
+                            <option value="Reasoning">推理模型 (Reasoning)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="isEnabled" name="is_enabled" checked>
+                        <label class="form-check-label" for="isEnabled">启用此模型</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveAIModel">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+

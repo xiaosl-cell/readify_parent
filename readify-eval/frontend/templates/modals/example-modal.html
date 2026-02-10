@@ -1,0 +1,33 @@
+<!-- 模态框：创建/编辑示例 -->
+<div class="modal fade" id="exampleModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">添加示例</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="exampleForm">
+                    <input type="hidden" id="exampleRowId" name="id">
+                    <div class="mb-3">
+                        <label for="exampleTitle" class="form-label">标题 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="exampleTitle" name="title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="exampleDescription" class="form-label">描述</label>
+                        <textarea class="form-control" id="exampleDescription" name="description" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="isActive" name="is_active" checked>
+                        <label class="form-check-label" for="isActive">激活此示例</label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveExample">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+

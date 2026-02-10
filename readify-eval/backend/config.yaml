@@ -1,0 +1,38 @@
+# Application Configuration
+app:
+  name: "Readify Eval Flow"
+  version: "1.0.0"
+  description: "FastAPI Application with Layered Architecture"
+  debug: true
+  host: "0.0.0.0"
+  port: 8000
+
+# Database Configuration
+database:
+  url: "mysql+pymysql://root:xsl123456@localhost:3306/readify-eval-flow"
+  echo: false  # SQL logging controlled by logging level (DEBUG to show SQL)
+  pool_size: 5
+  max_overflow: 10
+  pool_pre_ping: true
+
+# CORS Configuration
+cors:
+  allow_origins:
+    - "*"
+  allow_credentials: true
+  allow_methods:
+    - "*"
+  allow_headers:
+    - "*"
+
+# Logging Configuration
+logging:
+  level: "INFO"  # Default level (used if console_level/file_level not specified)
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  log_dir: "logs"
+  log_file: "app.log"
+  backup_count: 30  # Keep 30 days of log files
+  console_output: true  # Also output to console
+  console_level: "DEBUG"  # Console shows DEBUG and above (including SQL)
+  file_level: "INFO"  # File only records INFO and above (no DEBUG/SQL)
+

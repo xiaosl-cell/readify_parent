@@ -1,0 +1,48 @@
+<div class="evaluations-container">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-chart-bar"></i> 结果评估管理</h5>
+            <button id="addEvaluation" class="btn btn-primary">
+                <i class="fas fa-plus"></i> 创建评估对比
+            </button>
+        </div>
+        <div class="card-body">
+            <!-- 搜索和过滤 -->
+            <div class="row mb-3">
+                <div class="col-md-3">
+                    <input type="text" id="searchKeyword" class="form-control" placeholder="搜索对比名称/描述...">
+                </div>
+                <div class="col-md-2">
+                    <select id="statusFilter" class="form-select">
+                        <option value="">全部状态</option>
+                        <option value="pending">待执行</option>
+                        <option value="running">执行中</option>
+                        <option value="completed">已完成</option>
+                        <option value="failed">失败</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select id="testTaskFilter" class="form-select">
+                        <option value="">全部测试任务</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button id="applyFilters" class="btn btn-primary w-100">
+                        <i class="fas fa-filter"></i> 应用过滤
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <button id="resetFilters" class="btn btn-secondary w-100">
+                        <i class="fas fa-redo"></i> 重置
+                    </button>
+                </div>
+            </div>
+
+            <!-- 评估对比列表 -->
+            <div id="evaluationsTableContent">
+                <!-- 动态加载 -->
+            </div>
+        </div>
+    </div>
+</div>
+

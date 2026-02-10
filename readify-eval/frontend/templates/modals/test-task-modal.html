@@ -1,0 +1,180 @@
+<div class="modal fade" id="testTaskModal" tabindex="-1" aria-labelledby="testTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="testTaskModalLabel">创建测试任务</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="testTaskForm">
+                    <input type="hidden" id="taskRowId">
+                    
+                    <div class="row">
+                        <!-- 左侧：基本信息 -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="taskName" class="form-label">
+                                    任务名称 <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       id="taskName" 
+                                       placeholder="请输入任务名称" 
+                                       required>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="taskDescription" class="form-label">任务描述</label>
+                                <textarea class="form-control" 
+                                          id="taskDescription" 
+                                          rows="3" 
+                                          placeholder="请输入任务描述..."></textarea>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="taskAiModelSelect" class="form-label">
+                                    AI模型 <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="taskAiModelSelect" required>
+                                    <option value="">请选择AI模型</option>
+                                    <!-- 动态加载 -->
+                                </select>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <label for="taskRemarks" class="form-label">备注</label>
+                                <textarea class="form-control" 
+                                          id="taskRemarks" 
+                                          rows="2" 
+                                          placeholder="输入备注信息..."></textarea>
+                                <div class="form-text">可选：关于该任务的额外说明</div>
+                            </div>
+
+                            <!-- 编辑模式提示 -->
+                            <div class="alert alert-info" id="editModeNote" style="display: none;">
+                                <i class="fas fa-info-circle"></i>
+                                编辑模式下只能修改任务的基本信息，无法修改用例选择。
+                            </div>
+                        </div>
+                        
+                        <!-- 右侧：用例选择（树形结构） -->
+                        <div class="col-md-6" id="useCaseSelection">
+                            <div class="mb-3">
+                                <label class="form-label">
+                                    选择测试用例 <span class="text-danger">*</span>
+                                </label>
+                                <div class="form-text mb-2 d-flex justify-content-between align-items-center">
+                                    <div>
+                                        选择要执行的提示词用例（可多选）
+                                        <span class="badge bg-primary ms-2">
+                                            已选择: <span id="selectedCount">0</span>
+                                        </span>
+                                    </div>
+                                    <div>
+                                        <button type="button" class="btn btn-sm btn-success" id="selectAllUseCasesGlobal">
+                                            <i class="fas fa-check-double"></i> 全选所有用例
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllUseCasesGlobal">
+                                            <i class="fas fa-times"></i> 取消全选
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- 树形结构容器 -->
+                                <div class="template-tree-container" id="templateTree">
+                                    <div class="loading">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                            <span class="visually-hidden">加载中...</span>
+                                        </div>
+                                        <span class="ms-2">加载模板和用例...</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" id="saveTestTask">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* 树形结构样式 */
+.template-tree-container {
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 1rem;
+    background-color: #f8f9fa;
+}
+
+.template-node {
+    margin-bottom: 0.75rem;
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 0.75rem;
+}
+
+.template-node-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+}
+
+.template-node-toggle {
+    border: none;
+    background: none;
+    color: #6c757d;
+    transition: transform 0.2s;
+}
+
+.template-node-toggle i {
+    transition: transform 0.2s;
+}
+
+.template-node-name {
+    flex: 1;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.select-all-use-cases {
+    font-size: 0.875rem;
+    padding: 0.25rem 0.5rem;
+}
+
+.template-node-content {
+    margin-top: 0.75rem;
+    padding-left: 1.5rem;
+}
+
+.use-case-item {
+    padding: 0.5rem;
+    border-left: 2px solid #0d6efd;
+    margin-left: 0.5rem;
+    margin-bottom: 0.5rem;
+    background: #f8f9fa;
+    border-radius: 0.25rem;
+}
+
+.use-case-item:hover {
+    background: #e9ecef;
+}
+
+.form-check-label {
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+</style>
+

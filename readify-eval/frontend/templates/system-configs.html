@@ -1,0 +1,38 @@
+<div class="page-header">
+    <h2><i class="fas fa-cog"></i> 系统配置管理</h2>
+    <button class="btn btn-primary" id="addSystemConfig">
+        <i class="fas fa-plus"></i> 添加配置
+    </button>
+</div>
+
+<!-- 过滤和搜索 -->
+<div class="filter-section">
+    <div class="row">
+        <div class="col-md-8">
+            <input type="text" class="form-control" id="searchKeyword" placeholder="搜索配置编码、配置名称、配置描述或配置内容...">
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-primary w-100" id="applyConfigFilters">
+                <i class="fas fa-search"></i> 搜索
+            </button>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-outline-secondary w-100" id="resetConfigFilters">
+                <i class="fas fa-redo"></i> 重置
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 数据表格 -->
+<div class="table-container">
+    <div id="systemConfigsTableContent">
+        <div class="loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <p class="mt-3">加载数据中...</p>
+        </div>
+    </div>
+</div>
+

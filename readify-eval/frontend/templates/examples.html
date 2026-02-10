@@ -1,0 +1,45 @@
+<div class="page-header">
+    <h2><i class="fas fa-list"></i> 示例管理</h2>
+    <button class="btn btn-primary" id="addExample">
+        <i class="fas fa-plus"></i> 添加示例
+    </button>
+</div>
+
+<!-- 过滤和搜索 -->
+<div class="filter-section">
+    <div class="row">
+        <div class="col-md-3">
+            <label class="form-label">状态筛选</label>
+            <select class="form-select" id="filterActive">
+                <option value="">全部</option>
+                <option value="true">仅激活</option>
+                <option value="false">仅未激活</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-outline-primary w-100" id="applyExampleFilters">
+                <i class="fas fa-search"></i> 搜索
+            </button>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">&nbsp;</label>
+            <button class="btn btn-outline-secondary w-100" id="resetExampleFilters">
+                <i class="fas fa-redo"></i> 重置
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 数据表格 -->
+<div class="table-container">
+    <div id="examplesTableContent">
+        <div class="loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">加载中...</span>
+            </div>
+            <p class="mt-3">加载数据中...</p>
+        </div>
+    </div>
+</div>
+

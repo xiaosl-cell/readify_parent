@@ -6,8 +6,8 @@
     <el-menu
       :default-active="currentRoute"
       router
-      background-color="#304156"
-      text-color="#bfcbd9"
+      background-color="rgb(237, 239, 250)"
+      text-color="#606266"
       active-text-color="#409eff"
     >
       <el-menu-item index="/dashboard">
@@ -41,25 +41,38 @@ const currentRoute = computed(() => route.path)
 
 <style scoped>
 .sidebar {
-  background-color: #304156;
+  background-color: rgb(237, 239, 250);
   height: 100%;
+  border-right: 1px solid #e8eaf0;
 }
 
 .logo {
-  height: 60px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #263445;
+  background-color: rgb(237, 239, 250);
+  border-bottom: 1px solid #e8eaf0;
 }
 
 .logo h2 {
-  color: #fff;
-  font-size: 18px;
+  font-size: 20px;
+  font-weight: 600;
   margin: 0;
+  background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .el-menu {
   border-right: none;
+}
+
+.el-menu-item:hover {
+  background-color: rgba(64, 158, 255, 0.08) !important;
+}
+
+.el-menu-item.is-active {
+  background-color: rgba(64, 158, 255, 0.12) !important;
 }
 </style>
