@@ -9,10 +9,21 @@
             <div class="modal-body">
                 <form id="promptTemplateForm">
                     <input type="hidden" id="templateRowId" name="id">
-                    
-                    <div class="mb-3">
-                        <label for="templateName" class="form-label">模板名称 <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="templateName" name="template_name" required>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="templateCode" class="form-label">模板编码</label>
+                                <input type="text" class="form-control" id="templateCode" name="template_code" placeholder="如 coordinator、ask_agent">
+                                <div class="form-text">可选：唯一编码，供程序调用，设置后不建议修改</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="templateName" class="form-label">模板名称 <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="templateName" name="template_name" required>
+                            </div>
+                        </div>
                     </div>
                     
                     <div class="mb-3">
@@ -193,6 +204,12 @@
                         <label for="remarks" class="form-label">备注</label>
                         <textarea class="form-control" id="remarks" name="remarks" rows="3" placeholder="输入备注信息..."></textarea>
                         <div class="form-text">可选：关于该模板的额外说明或使用建议</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="changeLog" class="form-label">变更说明</label>
+                        <input type="text" class="form-control" id="changeLog" name="change_log" placeholder="简要描述本次变更内容...">
+                        <div class="form-text">可选：用于版本历史记录，方便追溯变更原因</div>
                     </div>
                 </form>
             </div>

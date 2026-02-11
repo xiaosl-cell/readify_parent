@@ -212,6 +212,29 @@ const ApiService = {
                 method: 'DELETE',
             });
         },
+
+        // 获取模板版本列表
+        getVersions: function(templateId, params = {}) {
+            const queryString = new URLSearchParams(params).toString();
+            return ApiService.request(`/prompt-templates/${templateId}/versions${queryString ? '?' + queryString : ''}`);
+        },
+
+        // 获取模板指定版本详情
+        getVersion: function(templateId, version) {
+            return ApiService.request(`/prompt-templates/${templateId}/versions/${version}`);
+        },
+
+        // 对比两个版本差异
+        diffVersions: function(templateId, fromVersion, toVersion) {
+            return ApiService.request(`/prompt-templates/${templateId}/versions/diff?from_version=${fromVersion}&to_version=${toVersion}`);
+        },
+
+        // 回滚到指定版本
+        rollbackVersion: function(templateId, version) {
+            return ApiService.request(`/prompt-templates/${templateId}/versions/${version}/rollback`, {
+                method: 'POST',
+            });
+        },
     },
 
     /**

@@ -179,18 +179,9 @@ class DocumentService:
         Returns:
             str: 生成的标签
         """
-        prompt_template = ""
-        try:
-            root_dir = Path(__file__).parent.parent.parent.absolute()
-            prompt_file_path = os.path.join(root_dir, "prompt", "label.prompt")
-
-            with open(prompt_file_path, "r", encoding="utf-8") as f:
-                prompt_template = f.read().strip()
-                logger.debug("成功读取提示词文件: %s", prompt_file_path)
-        except Exception as e:
-            logger.warning("读取提示词文件时出错: %s", str(e))
-            prompt_template = "生成描述该文本的标签，概括该文本主要描述的内容，不超过50个字：\n\n文本：{content}"
-            logger.debug("使用默认提示词模板")
+        from app.core.prompt_template_client import get_prompt_client
+        client = get_prompt_client()
+        prompt_template = (await client.get_template("label")).strip()
 
         try:
             chat = ChatOpenAI(

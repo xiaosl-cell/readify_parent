@@ -1,6 +1,6 @@
 import json
 import logging
-from pathlib import Path
+
 from typing import Dict, Any, Callable, List
 
 from langchain_core.tools import BaseTool, tool
@@ -37,7 +37,6 @@ class CoordinatorAgentService(AgentService):
         super().__init__(project_id, context, temperature, agent_name, description)
         self.task_type = task_type
         self.specialized_agents: Dict[str, AgentService] = {}
-        self._load_prompt_template()
         self.last_task_status: Dict[str, Any] = {
             "completed": False,
             "current_agent": None,
@@ -45,15 +44,10 @@ class CoordinatorAgentService(AgentService):
             "final_output": None
         }
 
-    def _load_prompt_template(self):
-        """加载协调器专用的提示模板"""
-        coordinator_prompt_path = Path("prompt/coordinator.prompt")
-        try:
-            with open(coordinator_prompt_path, "r", encoding="utf-8") as f:
-                self.prompt_template = f.read()
-                logger.info("成功加载协调器提示模板: %s", coordinator_prompt_path)
-        except FileNotFoundError:
-            logger.warning("未找到协调器提示模板: %s", coordinator_prompt_path)
+    async def _load_prompt_template_async(self):
+        """从 eval API 加载协调器专用的提示模板"""
+        self.prompt_template = await self._load_prompt_from_client("coordinator")
+        logger.info("成功加载协调器提示模板")
 
     def register_agent(self, agent_name: str, agent_service: AgentService) -> None:
         """

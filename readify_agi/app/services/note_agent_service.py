@@ -1,6 +1,6 @@
 import json
 import logging
-from pathlib import Path
+
 from typing import Dict, Callable, List, Any
 
 from langchain_core.tools import BaseTool, tool
@@ -43,14 +43,10 @@ class NoteAgentService(AgentService):
         self.mind_map_node_repo = MindMapNodeRepository()
         self.document_repo = DocumentRepository()
 
-        self._load_prompt_template()
-
-    def _load_prompt_template(self):
-        """加载笔记Agent的提示模板"""
-        prompt_path = Path("prompt/note_agent.prompt")
-        with open(prompt_path, "r", encoding="utf-8") as f:
-            self.prompt_template = f.read()
-            logger.info("成功加载笔记Agent提示模板: %s", prompt_path)
+    async def _load_prompt_template_async(self):
+        """从 eval API 加载笔记Agent的提示模板"""
+        self.prompt_template = await self._load_prompt_from_client("note_agent")
+        logger.info("成功加载笔记Agent提示模板")
 
     async def _load_tools(self) -> List[BaseTool]:
         """

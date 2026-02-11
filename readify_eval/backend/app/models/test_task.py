@@ -71,6 +71,10 @@ class TestExecution(BaseEntity, AuditMixin):
     reference_answer = Column(Text, nullable=True, comment="参考答案（快照，来自提示词用例）")
     evaluation_strategies_snapshot = Column(Text, nullable=True, comment="评估策略快照（JSON格式，来自提示词模板）")
     
+    # 提示词模板版本溯源
+    template_version = Column(Integer, nullable=True, comment="执行时使用的提示词模板版本号")
+    template_version_id = Column(String(36), nullable=True, comment="执行时使用的提示词模板版本ID")
+
     # 执行结果
     output_result = Column(Text, nullable=True, comment="输出结果")
     start_time = Column(DateTime, nullable=True, comment="开始执行时间")

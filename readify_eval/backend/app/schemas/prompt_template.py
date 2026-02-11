@@ -59,6 +59,7 @@ def validate_llm_param(value: Optional[str], param_type: str, min_val: Optional[
 
 class PromptTemplateBase(BaseModel):
     """提示词模板基础 Schema"""
+    template_code: Optional[str] = Field(None, max_length=100, description="模板编码（唯一标识符，供程序调用）")
     template_name: str = Field(..., min_length=1, max_length=255, description="提示词模板名称")
     system_prompt: Optional[str] = Field(None, description="系统提示词模板")
     user_prompt: Optional[str] = Field(None, description="用户提示词模板")
@@ -125,11 +126,12 @@ class PromptTemplateBase(BaseModel):
 
 class PromptTemplateCreate(PromptTemplateBase, BaseCreateSchema):
     """创建提示词模板的 Schema"""
-    pass
+    change_log: Optional[str] = Field(None, description="变更说明（用于版本记录）")
 
 
 class PromptTemplateUpdate(BaseUpdateSchema):
     """更新提示词模板的 Schema"""
+    template_code: Optional[str] = Field(None, max_length=100, description="模板编码（唯一标识符，供程序调用）")
     template_name: Optional[str] = Field(None, min_length=1, max_length=255, description="提示词模板名称")
     system_prompt: Optional[str] = Field(None, description="系统提示词模板")
     user_prompt: Optional[str] = Field(None, description="用户提示词模板")
@@ -143,25 +145,26 @@ class PromptTemplateUpdate(BaseUpdateSchema):
     owner: Optional[str] = Field(None, max_length=255, description="负责人")
     qc_number: Optional[str] = Field(None, max_length=255, description="QC号")
     prompt_source: Optional[str] = Field(None, max_length=255, description="提示词来源")
+    change_log: Optional[str] = Field(None, description="变更说明（用于版本记录）")
 
     @field_validator('max_tokens')
     @classmethod
     def validate_max_tokens(cls, v: Optional[str]) -> Optional[str]:
         """验证 max_tokens"""
         return validate_llm_param(v, 'int', min_val=1)
-    
+
     @field_validator('top_p')
     @classmethod
     def validate_top_p(cls, v: Optional[str]) -> Optional[str]:
         """验证 top_p"""
         return validate_llm_param(v, 'float', min_val=0.0, max_val=1.0)
-    
+
     @field_validator('top_k')
     @classmethod
     def validate_top_k(cls, v: Optional[str]) -> Optional[str]:
         """验证 top_k"""
         return validate_llm_param(v, 'int', min_val=0)
-    
+
     @field_validator('temperature')
     @classmethod
     def validate_temperature(cls, v: Optional[str]) -> Optional[str]:
@@ -171,7 +174,8 @@ class PromptTemplateUpdate(BaseUpdateSchema):
 
 class PromptTemplateResponse(PromptTemplateBase, BaseEntity):
     """提示词模板响应 Schema，继承基础实体"""
-    
+    current_version: int = Field(0, description="当前版本号")
+
     class Config:
         from_attributes = True
 

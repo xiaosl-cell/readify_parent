@@ -1,6 +1,6 @@
 import json
 import logging
-from pathlib import Path
+
 from typing import List, Dict, Any, Callable
 
 from langchain_community.utilities import SerpAPIWrapper
@@ -40,14 +40,10 @@ class AskAgentService(AgentService):
 
         self.project_file_repo = ProjectFileRepository()
 
-        self._load_prompt_template()
-
-    def _load_prompt_template(self):
-        """加载问答Agent的提示模板"""
-        prompt_path = Path("prompt/ask_agent.prompt")
-        with open(prompt_path, "r", encoding="utf-8") as f:
-            self.prompt_template = f.read()
-            logger.info("成功加载问答Agent提示模板: %s", prompt_path)
+    async def _load_prompt_template_async(self):
+        """从 eval API 加载问答Agent的提示模板"""
+        self.prompt_template = await self._load_prompt_from_client("ask_agent")
+        logger.info("成功加载问答Agent提示模板")
 
     async def _load_tools(self) -> List[BaseTool]:
         """

@@ -91,15 +91,36 @@ class AgentService:
         """
         初始化Agent，加载必要的组件
         """
+        # 异步加载提示词模板（子类可重写）
+        await self._load_prompt_template_async()
+
         # 初始化LLM
         self.llm = self._create_llm()
-        
+
         # 加载工具
         self.tools = await self._load_tools()
-        
+
         # 创建Agent执行器
         if self.prompt_template:
             self.agent_executor = self._create_agent_executor()
+
+    async def _load_prompt_template_async(self):
+        """异步模板加载钩子，子类重写以从远程或本地加载提示词模板"""
+        pass
+
+    async def _load_prompt_from_client(self, template_name: str) -> str:
+        """
+        通过 PromptTemplateClient 从缓存中加载模板
+
+        Args:
+            template_name: 模板名称（eval 数据库中的 template_name）
+
+        Returns:
+            模板内容字符串
+        """
+        from app.core.prompt_template_client import get_prompt_client
+        client = get_prompt_client()
+        return await client.get_template(template_name)
     
     def _create_llm(self) -> ChatOpenAI:
         """

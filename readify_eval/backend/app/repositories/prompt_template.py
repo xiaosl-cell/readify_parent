@@ -20,14 +20,26 @@ class PromptTemplateRepository(BaseRepository[PromptTemplate]):
     def get_by_name(self, template_name: str) -> Optional[PromptTemplate]:
         """
         Get prompt template by name
-        
+
         Args:
             template_name: Template name
-            
+
         Returns:
             PromptTemplate instance or None
         """
         return self.db.query(self.model).filter(self.model.template_name == template_name).first()
+
+    def get_by_code(self, template_code: str) -> Optional[PromptTemplate]:
+        """
+        Get prompt template by code
+
+        Args:
+            template_code: Template code
+
+        Returns:
+            PromptTemplate instance or None
+        """
+        return self.db.query(self.model).filter(self.model.template_code == template_code).first()
     
     def get_all(
         self, 

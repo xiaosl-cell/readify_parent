@@ -66,6 +66,8 @@ class TestExecutionResponse(BaseEntity):
     ai_model_name: Optional[str] = Field(None, description="AI模型名称")
     reference_answer: Optional[str] = Field(None, description="参考答案（快照，来自提示词用例）")
     evaluation_strategies_snapshot: Optional[str] = Field(None, description="评估策略快照（JSON格式，来自提示词模板）")
+    template_version: Optional[int] = Field(None, description="执行时使用的提示词模板版本号")
+    template_version_id: Optional[str] = Field(None, description="执行时使用的提示词模板版本ID")
     output_result: Optional[str] = Field(None, description="输出结果")
     start_time: Optional[datetime] = Field(None, description="开始执行时间")
     end_time: Optional[datetime] = Field(None, description="结束执行时间")

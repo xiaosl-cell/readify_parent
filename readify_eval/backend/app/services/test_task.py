@@ -16,6 +16,7 @@ from app.repositories.test_task import TestTaskRepository, TestExecutionReposito
 from app.repositories.prompt_use_case import PromptUseCaseRepository
 from app.repositories.ai_model import AIModelRepository
 from app.repositories.system_config import SystemConfigRepository
+from app.repositories.prompt_template_version import PromptTemplateVersionRepository
 from app.schemas.test_task import (
     TestTaskCreate,
     TestTaskUpdate,
@@ -38,6 +39,7 @@ class TestTaskService:
         self.use_case_repository = PromptUseCaseRepository(db)
         self.ai_model_repository = AIModelRepository(db)
         self.system_config_repository = SystemConfigRepository(db)
+        self.version_repository = PromptTemplateVersionRepository(db)
         self.db = db
     
     def _resolve_param_value(self, param_value: Optional[str], config_code: str) -> Optional[str]:
@@ -191,6 +193,18 @@ class TestTaskService:
                     ensure_ascii=False
                 )
             
+            # 获取模板版本溯源信息
+            template_version = None
+            template_version_id = None
+            if use_case.template:
+                template_version = getattr(use_case.template, 'current_version', None)
+                if template_version:
+                    version_obj = self.version_repository.get_by_template_id_and_version(
+                        use_case.template.id, template_version
+                    )
+                    if version_obj:
+                        template_version_id = version_obj.id
+
             execution_dict = {
                 "test_task_id": task.id,
                 "status": ExecutionStatus.PENDING.value,
@@ -203,6 +217,8 @@ class TestTaskService:
                 "ai_model_name": ai_model.model_name,
                 "reference_answer": use_case.reference_answer,  # 参考答案来自提示词用例
                 "evaluation_strategies_snapshot": evaluation_strategies_snapshot,  # 评估策略来自提示词模板
+                "template_version": template_version,  # 提示词模板版本号
+                "template_version_id": template_version_id,  # 提示词模板版本ID
                 "created_by": task_in.created_by,
                 "updated_by": task_in.created_by
             }

@@ -121,8 +121,10 @@ class Settings(BaseSettings):
     NACOS_HEARTBEAT_INTERVAL: int = int(os.getenv("NACOS_HEARTBEAT_INTERVAL", "5"))
     NACOS_CONFIG_DATA_ID: str = os.getenv("NACOS_CONFIG_DATA_ID", "")
 
-    # Service discovery settings
+    # 服务发现配置
     READIFY_SERVER_SERVICE_NAME: str = os.getenv("READIFY_SERVER_SERVICE_NAME", "")
+    READIFY_EVAL_SERVICE_NAME: str = os.getenv("READIFY_EVAL_SERVICE_NAME", "readify-eval")
+    READIFY_EVAL_BASE_URL: str = os.getenv("READIFY_EVAL_BASE_URL", "")
 
     @property
     def DATABASE_URL(self) -> str:

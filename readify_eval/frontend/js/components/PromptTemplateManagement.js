@@ -224,6 +224,13 @@ class PromptTemplateManagement {
             const templateName = $(this).data('name');
             self.viewUseCases(templateId, templateName);
         });
+
+        // 查看版本历史按钮
+        $(document).off('click', '.view-versions').on('click', '.view-versions', function() {
+            const templateId = $(this).data('id');
+            const templateName = $(this).data('name');
+            self.viewVersionHistory(templateId, templateName);
+        });
         
         // 创建用例按钮
         $(document).off('click', '.create-use-case').on('click', '.create-use-case', function() {
@@ -370,7 +377,7 @@ class PromptTemplateManagement {
             
             tableHtml += `
                 <tr>
-                    <td><strong>${item.template_name}</strong></td>
+                    <td><strong>${item.template_name}</strong><br><small class="text-muted">${item.template_code || ''}</small></td>
                     <td><div class="text-truncate-cell" title="${this.escapeHtml(systemPromptTitle)}">${systemPrompt}</div></td>
                     <td><div class="text-truncate-cell" title="${this.escapeHtml(item.user_prompt || '')}">${userPrompt}</div></td>
                     <td>${functionCategory}</td>
@@ -384,6 +391,9 @@ class PromptTemplateManagement {
                         </button>
                         <button class="btn btn-sm btn-outline-info view-template" data-id="${item.id}" title="查看详情">
                             <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary view-versions" data-id="${item.id}" data-name="${item.template_name}" title="版本历史">
+                            <i class="fas fa-history"></i>
                         </button>
                         <button class="btn btn-sm btn-outline-primary edit-template" data-id="${item.id}" title="编辑">
                             <i class="fas fa-edit"></i>
@@ -1718,6 +1728,7 @@ class PromptTemplateManagement {
                 <div class="template-detail">
                     <div class="mb-3">
                         <strong>模板名称：</strong>${template.template_name}
+                        <span class="badge bg-secondary ms-2">v${template.current_version || 0}</span>
                     </div>
                     <div class="mb-3">
                         <strong>功能分类：</strong>${template.function_category || '<em class="text-muted">未分类</em>'}
@@ -1856,6 +1867,7 @@ class PromptTemplateManagement {
                 const template = await ApiService.promptTemplates.getById(id);
                 
                 $('#templateRowId').val(template.id);
+                $('#templateCode').val(template.template_code || '');
                 $('#templateName').val(template.template_name);
                 $('#userPrompt').val(template.user_prompt || '');
                 $('#functionCategory').val(template.function_category || '');
@@ -1875,6 +1887,9 @@ class PromptTemplateManagement {
                 
                 // 设置评估策略
                 this.setEvaluationStrategies(template.evaluation_strategies);
+
+                // 清空变更说明（每次编辑应重新填写）
+                $('#changeLog').val('');
             } catch (error) {
                 UIHelper.showToast('加载模板数据失败: ' + error.message, 'error');
                 return;
@@ -2100,6 +2115,7 @@ class PromptTemplateManagement {
         const topKValue = this.getFieldValue('topK');
         
         const formData = {
+            template_code: $('#templateCode').val().trim() || null,
             template_name: $('#templateName').val().trim(),
             system_prompt: systemPromptValue,
             user_prompt: $('#userPrompt').val().trim() || null,
@@ -2112,7 +2128,8 @@ class PromptTemplateManagement {
             top_p: topPValue,
             top_k: topKValue,
             temperature: temperatureValue,
-            evaluation_strategies: this.getEvaluationStrategies()
+            evaluation_strategies: this.getEvaluationStrategies(),
+            change_log: $('#changeLog').val().trim() || null
         };
         
         // 验证
@@ -2480,6 +2497,322 @@ class PromptTemplateManagement {
         }
     }
 
+    // ============= 版本管理方法 =============
+
+    /**
+     * 查看版本历史
+     */
+    async viewVersionHistory(templateId, templateName) {
+        try {
+            const response = await ApiService.promptTemplates.getVersions(templateId, { skip: 0, limit: 100 });
+            const versions = response.items;
+
+            let versionsHtml = '';
+            if (versions.length === 0) {
+                versionsHtml = '<div class="text-center text-muted py-5"><i class="fas fa-inbox fa-2x mb-3 d-block"></i>暂无版本记录</div>';
+            } else {
+                // 版本对比工具栏
+                const diffBarHtml = versions.length >= 2 ? `
+                    <div class="card bg-light border-0 mb-4">
+                        <div class="card-body py-3">
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <span class="text-muted small fw-bold"><i class="fas fa-exchange-alt me-1"></i>版本对比</span>
+                                <select class="form-select form-select-sm" id="diffFromVersion" style="width: 120px;">
+                                    ${versions.map((v, i) => `<option value="${v.version}" ${i === 1 ? 'selected' : ''}>v${v.version}${i === 0 ? ' (最新)' : ''}</option>`).join('')}
+                                </select>
+                                <span class="text-muted">→</span>
+                                <select class="form-select form-select-sm" id="diffToVersion" style="width: 120px;">
+                                    ${versions.map((v, i) => `<option value="${v.version}" ${i === 0 ? 'selected' : ''}>v${v.version}${i === 0 ? ' (最新)' : ''}</option>`).join('')}
+                                </select>
+                                <button class="btn btn-sm btn-primary" id="compareVersionsBtn" data-template-id="${templateId}">
+                                    <i class="fas fa-search-plus me-1"></i>查看差异
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                ` : '';
+
+                // 版本列表
+                let tableHtml = `
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 15%">版本</th>
+                                    <th style="width: 40%">变更说明</th>
+                                    <th style="width: 25%">变更时间</th>
+                                    <th style="width: 20%" class="text-end">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                versions.forEach((v, index) => {
+                    const isCurrent = index === 0;
+                    tableHtml += `
+                        <tr>
+                            <td>
+                                <span class="badge ${isCurrent ? 'bg-success' : 'bg-secondary'} me-1">v${v.version}</span>
+                                ${isCurrent ? '<span class="badge bg-info">当前</span>' : ''}
+                            </td>
+                            <td>${v.change_log || '<em class="text-muted">无说明</em>'}</td>
+                            <td class="text-muted small">${UIHelper.formatDateTime(v.created_at)}</td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-outline-info view-version-detail" data-template-id="${templateId}" data-version="${v.version}" title="查看快照">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    ${!isCurrent ? `
+                                    <button class="btn btn-outline-warning rollback-version" data-template-id="${templateId}" data-version="${v.version}" data-template-name="${templateName}" title="回滚到此版本">
+                                        <i class="fas fa-undo"></i>
+                                    </button>` : ''}
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                });
+
+                tableHtml += '</tbody></table></div>';
+                versionsHtml = diffBarHtml + tableHtml;
+            }
+
+            const modalHtml = `
+                <div class="modal fade" id="versionHistoryModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title"><i class="fas fa-history me-2"></i>版本历史 - ${templateName}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">
+                                ${versionsHtml}
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            $('#versionHistoryModal').remove();
+            $('body').append(modalHtml);
+
+            const self = this;
+
+            // 绑定版本对比按钮
+            $(document).off('click', '#compareVersionsBtn').on('click', '#compareVersionsBtn', function() {
+                const tid = $(this).data('template-id');
+                const from = parseInt($('#diffFromVersion').val());
+                const to = parseInt($('#diffToVersion').val());
+                if (from === to) {
+                    UIHelper.showToast('请选择两个不同的版本进行对比', 'warning');
+                    return;
+                }
+                self.showVersionDiff(tid, from, to);
+            });
+
+            // 绑定查看版本详情按钮
+            $(document).off('click', '.view-version-detail').on('click', '.view-version-detail', function() {
+                const tid = $(this).data('template-id');
+                const ver = $(this).data('version');
+                self.viewVersionDetail(tid, ver);
+            });
+
+            // 绑定回滚按钮
+            $(document).off('click', '.rollback-version').on('click', '.rollback-version', function() {
+                const tid = $(this).data('template-id');
+                const ver = $(this).data('version');
+                const tname = $(this).data('template-name');
+                self.rollbackToVersion(tid, ver, tname);
+            });
+
+            const modal = new bootstrap.Modal(document.getElementById('versionHistoryModal'));
+            modal.show();
+
+            $('#versionHistoryModal').on('hidden.bs.modal', function() {
+                $(this).remove();
+            });
+        } catch (error) {
+            UIHelper.showToast('加载版本历史失败: ' + error.message, 'error');
+        }
+    }
+
+    /**
+     * 查看版本详情
+     */
+    async viewVersionDetail(templateId, version) {
+        try {
+            const v = await ApiService.promptTemplates.getVersion(templateId, version);
+
+            const detailHtml = `
+                <div class="template-detail">
+                    <div class="mb-3">
+                        <strong>版本：</strong><span class="badge bg-secondary">v${v.version}</span>
+                        <span class="ms-2"><strong>变更说明：</strong>${v.change_log || '<em class="text-muted">无</em>'}</span>
+                    </div>
+                    <div class="mb-3"><strong>模板名称：</strong>${v.template_name}</div>
+                    <div class="mb-3">
+                        <strong>系统提示词：</strong>
+                        <div class="prompt-content">${this.formatFieldDisplay(v.system_prompt, 'systemPrompt')}</div>
+                    </div>
+                    <div class="mb-3">
+                        <strong>用户提示词：</strong>
+                        <div class="prompt-content">${v.user_prompt || '<em class="text-muted">无</em>'}</div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4"><strong>功能分类：</strong>${v.function_category || '<em class="text-muted">未分类</em>'}</div>
+                        <div class="col-md-4"><strong>负责人：</strong>${v.owner || '<em class="text-muted">未设置</em>'}</div>
+                        <div class="col-md-4"><strong>提示词来源：</strong>${v.prompt_source || '<em class="text-muted">未设置</em>'}</div>
+                    </div>
+                    <div class="card mb-3">
+                        <div class="card-header"><h6 class="mb-0"><i class="fas fa-cogs"></i> 模型入参配置</h6></div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-3"><strong>最大Token数：</strong>${this.formatFieldDisplay(v.max_tokens, 'maxTokens')}</div>
+                                <div class="col-md-3"><strong>温度：</strong>${this.formatFieldDisplay(v.temperature, 'temperature')}</div>
+                                <div class="col-md-3"><strong>Top P：</strong>${this.formatFieldDisplay(v.top_p, 'topP')}</div>
+                                <div class="col-md-3"><strong>Top K：</strong>${this.formatFieldDisplay(v.top_k, 'topK')}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3"><strong>评估策略：</strong>${this.formatEvaluationStrategies(v.evaluation_strategies)}</div>
+                    <div class="mb-3"><strong>备注：</strong>${v.remarks || '<em class="text-muted">无</em>'}</div>
+                    <div class="mb-3"><strong>创建时间：</strong>${UIHelper.formatDateTime(v.created_at)}</div>
+                </div>
+            `;
+
+            const modalHtml = `
+                <div class="modal fade" id="versionDetailModal" tabindex="-1">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">版本 v${v.version} 详情</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">${detailHtml}</div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            $('#versionDetailModal').remove();
+            $('body').append(modalHtml);
+            const modal = new bootstrap.Modal(document.getElementById('versionDetailModal'));
+            modal.show();
+            $('#versionDetailModal').on('hidden.bs.modal', function() { $(this).remove(); });
+
+        } catch (error) {
+            UIHelper.showToast('加载版本详情失败: ' + error.message, 'error');
+        }
+    }
+
+    /**
+     * 显示版本差异对比
+     */
+    async showVersionDiff(templateId, fromVersion, toVersion) {
+        try {
+            const diff = await ApiService.promptTemplates.diffVersions(templateId, fromVersion, toVersion);
+
+            let diffHtml = '';
+            if (diff.diffs.length === 0) {
+                diffHtml = '<div class="text-center text-muted py-4">两个版本内容完全相同，无差异</div>';
+            } else {
+                diffHtml = `
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 15%">字段</th>
+                                    <th style="width: 42.5%">v${fromVersion}</th>
+                                    <th style="width: 42.5%">v${toVersion}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+
+                diff.diffs.forEach(d => {
+                    const oldVal = d.old_value !== null && d.old_value !== undefined
+                        ? (typeof d.old_value === 'object' ? JSON.stringify(d.old_value) : String(d.old_value))
+                        : '<em class="text-muted">空</em>';
+                    const newVal = d.new_value !== null && d.new_value !== undefined
+                        ? (typeof d.new_value === 'object' ? JSON.stringify(d.new_value) : String(d.new_value))
+                        : '<em class="text-muted">空</em>';
+
+                    diffHtml += `
+                        <tr>
+                            <td><strong>${d.field_label}</strong></td>
+                            <td><div class="diff-cell" style="max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; background: #fff5f5;">${this.escapeHtml(oldVal === '<em class="text-muted">空</em>' ? '' : oldVal) || '<em class="text-muted">空</em>'}</div></td>
+                            <td><div class="diff-cell" style="max-height: 200px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; background: #f0fff0;">${this.escapeHtml(newVal === '<em class="text-muted">空</em>' ? '' : newVal) || '<em class="text-muted">空</em>'}</div></td>
+                        </tr>
+                    `;
+                });
+
+                diffHtml += '</tbody></table></div>';
+            }
+
+            const modalHtml = `
+                <div class="modal fade" id="versionDiffModal" tabindex="-1">
+                    <div class="modal-dialog modal-xl">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title"><i class="fas fa-exchange-alt me-2"></i>版本对比: v${fromVersion} → v${toVersion}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                            </div>
+                            <div class="modal-body">${diffHtml}</div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            $('#versionDiffModal').remove();
+            $('body').append(modalHtml);
+            const modal = new bootstrap.Modal(document.getElementById('versionDiffModal'));
+            modal.show();
+            $('#versionDiffModal').on('hidden.bs.modal', function() { $(this).remove(); });
+
+        } catch (error) {
+            UIHelper.showToast('加载版本差异失败: ' + error.message, 'error');
+        }
+    }
+
+    /**
+     * 回滚到指定版本
+     */
+    async rollbackToVersion(templateId, version, templateName) {
+        const confirmed = await UIHelper.confirmDialog(
+            `确定要将模板 "${templateName}" 回滚到 v${version} 吗？\n\n回滚后会创建一个新版本，内容恢复为 v${version} 的快照。`,
+            {
+                title: '版本回滚确认',
+                confirmText: '确认回滚',
+                cancelText: '取消',
+                confirmClass: 'btn-warning'
+            }
+        );
+
+        if (!confirmed) return;
+
+        try {
+            await ApiService.promptTemplates.rollbackVersion(templateId, version);
+            UIHelper.showToast(`已成功回滚到 v${version}`, 'success');
+
+            // 关闭版本历史模态框
+            const historyModal = bootstrap.Modal.getInstance(document.getElementById('versionHistoryModal'));
+            if (historyModal) historyModal.hide();
+
+            // 刷新列表
+            this.loadData();
+        } catch (error) {
+            UIHelper.showToast('回滚失败: ' + error.message, 'error');
+        }
+    }
+
     /**
      * 销毁组件（清理事件监听）
      */
@@ -2492,6 +2825,7 @@ class PromptTemplateManagement {
         $(document).off('click', '.delete-template');
         $(document).off('click', '.view-template');
         $(document).off('click', '.view-use-cases');
+        $(document).off('click', '.view-versions');
         $(document).off('click', '.create-use-case');
         $(document).off('click', '#savePromptTemplate');
         $(document).off('click', '#promptTemplatesTableContent .page-link[data-page]');
@@ -2500,5 +2834,8 @@ class PromptTemplateManagement {
         $(document).off('change', '#temperatureMode');
         $(document).off('change', '#topPMode');
         $(document).off('change', '#topKMode');
+        $(document).off('click', '#compareVersionsBtn');
+        $(document).off('click', '.view-version-detail');
+        $(document).off('click', '.rollback-version');
     }
 }
