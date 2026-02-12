@@ -179,6 +179,8 @@ NACOS_CONFIG_DATA_ID=readify-agi.yaml
 READIFY_SERVER_SERVICE_NAME=readify-server
 ```
 
+> ⚠️ 注意：如果服务启动后无法注册到 Nacos 或拉不到配置，请优先检查 `NACOS_NAMESPACE` 与 `NACOS_GROUP` 是否和其他服务保持一致。
+
 ### 补充：管理后台本地配置 (readify_admin)
 
 管理后台不依赖 Nacos 配置中心，使用本地 `Vite` 代理配置：
@@ -193,6 +195,12 @@ vim vite.config.ts
 - `server.proxy['/api'].target`（默认 `http://localhost:8080`）
 
 ### Nacos 配置文件
+
+> ⚠️ `namespace` 和 `group` 必须全链路一致（建议统一使用同一个 `namespace`，`group` 统一为 `READIFY`）。至少需同时核对以下位置：
+> - `readify_server/src/main/resources/application.yml` 中的 `spring.cloud.nacos.discovery/config.namespace` 与 `group`
+> - `readify_agi/.env` 中的 `NACOS_NAMESPACE` 与 `NACOS_GROUP`
+> - `readify_eval/backend/config.yaml` 中的 `nacos.namespace` 与 `nacos.group`
+> - Nacos 控制台中新建配置时选择的命名空间与 Group
 
 - **Data ID：`readify-server.yaml`**
 
