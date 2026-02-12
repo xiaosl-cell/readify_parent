@@ -105,6 +105,7 @@ config.local.js
 config.local.json
 readify_server/.mvn/wrapper/maven-wrapper.properties
 readify_server/src/main/resources/application.yml
+readify_frontend/package-lock.json
 
 # 系统生成的文件 (System generated files)
 *.class
