@@ -1,0 +1,38 @@
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.iml
+
+# Node
+**/node_modules
+**/dist
+
+# Java
+**/target
+**/*.class
+
+# Python
+**/__pycache__
+**/*.pyc
+**/.venv
+**/venv
+**/.pytest_cache
+
+# Docker
+**/Dockerfile
+**/.dockerignore
+
+# OS
+**/.DS_Store
+**/Thumbs.db
+
+# Logs
+**/*.log
+**/logs
+
+# Env files (sensitive)
+# Note: readify_agi/.env is needed for build context but overridden at runtime

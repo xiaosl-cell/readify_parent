@@ -161,6 +161,12 @@ def load_config(config_path: str = "config.yaml") -> Settings:
     local_data = _read_yaml(config_path)
 
     nacos_section = local_data.get("nacos", {})
+
+    # Allow environment variables to override nacos connection params (for Docker)
+    env_server_addr = os.environ.get("NACOS_SERVER_ADDR")
+    if env_server_addr:
+        nacos_section["server_addr"] = env_server_addr
+        local_data["nacos"] = nacos_section
     nacos_enabled = nacos_section.get("enabled", False)
 
     if nacos_enabled:

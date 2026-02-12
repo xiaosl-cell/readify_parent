@@ -1,4 +1,9 @@
-﻿services:
+networks:
+  readify-net:
+    name: readify-net
+    driver: bridge
+
+services:
   mysql:
     image: mysql:5.7
     container_name: nacos-mysql
@@ -12,6 +17,8 @@
       - "3307:3306"
     command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     restart: always
+    networks:
+      - readify-net
 
   nacos:
     image: nacos/nacos-server:latest
@@ -35,6 +42,14 @@
       - "10010:8080"
       - "9848:9848"
     restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8848/nacos/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    networks:
+      - readify-net
 
   etcd:
     image: quay.m.daocloud.io/coreos/etcd:v3.5.5
@@ -54,6 +69,8 @@
     ports:
       - "2379:2379"
     restart: always
+    networks:
+      - readify-net
 
   minio:
     image: docker.m.daocloud.io/minio/minio:latest
@@ -68,6 +85,8 @@
       - "9000:9000"
       - "9001:9001"
     restart: always
+    networks:
+      - readify-net
 
   milvus:
     image: docker.m.daocloud.io/milvusdb/milvus:v2.4.0
@@ -87,6 +106,8 @@
       - "19530:19530"
       - "9091:9091"
     restart: always
+    networks:
+      - readify-net
 
   attu:
     image: zilliz/attu:latest
@@ -98,3 +119,5 @@
     ports:
       - "10020:3000"
     restart: always
+    networks:
+      - readify-net

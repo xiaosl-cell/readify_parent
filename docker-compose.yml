@@ -1,0 +1,60 @@
+services:
+  readify-server:
+    build:
+      context: ./readify_server
+      dockerfile: Dockerfile
+    container_name: readify-server
+    environment:
+      - SPRING_CLOUD_NACOS_DISCOVERY_SERVER_ADDR=nacos-standalone-mysql:8848
+      - SPRING_CLOUD_NACOS_CONFIG_SERVER_ADDR=nacos-standalone-mysql:8848
+      - SPRING_CLOUD_NACOS_USERNAME=nacos
+      - SPRING_CLOUD_NACOS_PASSWORD=nacos2025
+    restart: always
+    networks:
+      - readify-net
+
+  readify-agi:
+    build:
+      context: ./readify_agi
+      dockerfile: Dockerfile
+    container_name: readify-agi
+    env_file:
+      - ./readify_agi/.env
+    environment:
+      - NACOS_SERVER_ADDR=nacos-standalone-mysql:8848
+    ports:
+      - "8081:8081"
+    restart: always
+    networks:
+      - readify-net
+
+  readify-eval-backend:
+    build:
+      context: ./readify_eval/backend
+      dockerfile: Dockerfile
+    container_name: readify-eval-backend
+    environment:
+      - NACOS_SERVER_ADDR=nacos-standalone-mysql:8848
+    restart: always
+    networks:
+      - readify-net
+
+  readify-nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
+    container_name: readify-nginx
+    ports:
+      - "5173:80"   # frontend
+      - "5174:81"   # admin
+      - "5175:82"   # eval frontend
+    depends_on:
+      - readify-server
+      - readify-eval-backend
+    restart: always
+    networks:
+      - readify-net
+
+networks:
+  readify-net:
+    external: true

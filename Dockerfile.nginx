@@ -1,0 +1,48 @@
+# ============================================================
+# Stage 1: Build frontend
+# ============================================================
+FROM node:20-alpine AS frontend-build
+WORKDIR /app
+COPY readify_frontend/package.json readify_frontend/package-lock.json ./
+RUN npm ci
+COPY readify_frontend/ .
+RUN npx vite build
+
+# ============================================================
+# Stage 2: Build admin
+# ============================================================
+FROM node:20-alpine AS admin-build
+WORKDIR /app
+COPY readify_admin/package.json readify_admin/package-lock.json ./
+RUN npm ci
+COPY readify_admin/ .
+RUN npx vite build
+
+# ============================================================
+# Stage 3: Prepare eval frontend (static HTML, no build needed)
+# ============================================================
+FROM alpine:3.19 AS eval-frontend
+WORKDIR /frontend
+COPY readify_eval/frontend/ .
+# Replace API_BASE_URL so the frontend calls relative /api/v1 (proxied by nginx)
+RUN sed -i "s|http://localhost:8082/api/v1|/api/v1|g" js/config.js
+
+# ============================================================
+# Stage 4: Runtime — nginx serving all 3 frontends
+# ============================================================
+FROM nginx:alpine
+
+# Remove default config
+RUN rm -f /etc/nginx/conf.d/default.conf
+
+# Copy frontend static files
+COPY --from=frontend-build /app/dist /usr/share/nginx/html/frontend
+COPY --from=admin-build /app/dist /usr/share/nginx/html/admin
+COPY --from=eval-frontend /frontend /usr/share/nginx/html/eval
+
+# Copy nginx config
+COPY deploy/nginx.conf /etc/nginx/conf.d/default.conf
+
+EXPOSE 80 81 82
+
+CMD ["nginx", "-g", "daemon off;"]

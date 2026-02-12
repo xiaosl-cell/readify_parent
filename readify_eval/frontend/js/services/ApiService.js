@@ -403,7 +403,7 @@ const ApiService = {
         // 获取评估对比列表
         getAll: function(params = {}) {
             const queryString = new URLSearchParams(params).toString();
-            return ApiService.request(`/evaluations${queryString ? '?' + queryString : ''}`);
+            return ApiService.request(`/evaluations/${queryString ? '?' + queryString : ''}`);
         },
         
         // 获取单个评估对比

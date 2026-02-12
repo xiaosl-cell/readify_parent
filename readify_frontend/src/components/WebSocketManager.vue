@@ -156,7 +156,9 @@ const initWebSocket = () => {
 
   try {
     // 使用token参数创建WebSocket连接
-    const wsUrl = `ws://localhost:8080/api/v1/ws/readify?token=${encodeURIComponent(token)}`
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+    const wsHost = window.location.host
+    const wsUrl = `${wsProtocol}//${wsHost}/api/v1/ws/readify?token=${encodeURIComponent(token)}`
     ws.value = new WebSocket(wsUrl)
 
     ws.value.onopen = () => {
