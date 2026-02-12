@@ -99,42 +99,28 @@ readify_parent/
 
 ### 前提条件
 
+**Docker 部署（推荐）**
+- Docker >= 20.10
+- Docker Compose >= 2.0
+
+**本地开发（可选）**
 - Node.js 16+
 - JDK 17+
 - Python 3.9+
 - MySQL 8.0+
-- Docker & Docker Compose (用于基础设施)
 
-### 一键启动（推荐）
+### Docker 启动（推荐）
 
-在仓库根目录执行：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\start-all.ps1
-```
-
-可选参数：
-
-```powershell
-# 跳过某些服务
-.\start-all.ps1 -SkipInfra
-.\start-all.ps1 -SkipAgi
-.\start-all.ps1 -SkipServer
-.\start-all.ps1 -SkipFrontend
-
-# 强制重建后端
-.\start-all.ps1 -RebuildServer
-```
-
-说明：
-- 会自动启动基础设施（Nacos/MySQL/Milvus/MinIO）、AGI、Server、Frontend。
-- 前端会在 `readify_frontend` 目录自动执行 `npm install`（仅首次）和 `npm run dev`。
+以下步骤默认在仓库根目录 `readify_parent` 执行。
 
 ### 1. 启动基础设施
 
 ```bash
-cd infra
-docker-compose up -d
+# 在项目根目录执行
+docker compose -f infra/docker-compose.yml up -d
+
+# 查看基础设施状态
+docker compose -f infra/docker-compose.yml ps
 ```
 
 这将启动以下服务：
@@ -146,8 +132,13 @@ docker-compose up -d
 ### 2. 初始化数据库
 
 ```bash
-# 导入数据库结构
-mysql -u root -p < readify_server/src/main/resources/db/migration/db.sql
+# 初始化业务库（readify）
+mysql -h 127.0.0.1 -P 3307 -u root -proot -e "CREATE DATABASE IF NOT EXISTS readify DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -h 127.0.0.1 -P 3307 -u root -proot readify < readify_server/src/main/resources/db/migration/db.sql
+
+# 初始化评测库（readify_eval）
+mysql -h 127.0.0.1 -P 3307 -u root -proot -e "CREATE DATABASE IF NOT EXISTS readify_eval DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+mysql -h 127.0.0.1 -P 3307 -u root -proot readify_eval < readify_eval/sql/readify_eval_flow.sql
 ```
 
 ### 3. 配置后端服务 (readify_server)
@@ -160,78 +151,249 @@ vim src/main/resources/application.yml
 
 主要配置项：
 - `spring.cloud.nacos.*` - Nacos连接配置
-- `readify.file.storage-type` - 存储类型 (minio/local)
-- `readify.file.minio.*` - MinIO连接配置
+
+本地配置文件位置：`readify_server/src/main/resources/application.yml`
 
 ### 4. 配置AGI服务 (readify_agi)
 
 ```bash
 cd readify_agi
-cp .env.example .env
 vim .env
 ```
 
 主要配置项：
 ```env
+# Service / Nacos
+SERVICE_NAME=readify-agi
+SERVICE_PORT=8081
+
+NACOS_ENABLED=true
+NACOS_SERVER_ADDR=localhost:8848
+NACOS_NAMESPACE=ca5b6af9-5336-42f7-b68c-515779f79a98
+NACOS_GROUP=READIFY
+NACOS_USERNAME=nacos
+NACOS_PASSWORD=nacos2025
+NACOS_CLUSTER=DEFAULT
+NACOS_HEARTBEAT_INTERVAL=5
+NACOS_CONFIG_DATA_ID=readify-agi.yaml
+READIFY_SERVER_SERVICE_NAME=readify-server
+```
+
+### 补充：管理后台本地配置 (readify_admin)
+
+管理后台不依赖 Nacos 配置中心，使用本地 `Vite` 代理配置：
+
+```bash
+cd readify_admin
+vim vite.config.ts
+```
+
+主要配置项：
+- `server.port`（默认 `5174`）
+- `server.proxy['/api'].target`（默认 `http://localhost:8080`）
+
+### Nacos 配置文件
+
+- **Data ID：`readify-server.yaml`**
+
+```yaml
+server:
+  port: 8080
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    # 如：jdbc:mysql://mysql8:3306/readify?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    url: {mysql数据库}
+    username: root
+    password: {数据库密码}
+  mvc:
+    servlet:
+      path: /api/v1
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+
+logging:
+  level:
+    com.readify.server.infrastructure.security: INFO
+    com.readify.server.domain.auth.service: INFO
+    org.springframework.security: INFO
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  mapper-locations: classpath*:/mapper/**/*.xml
+  type-aliases-package: com.readify.server.infrastructure.persistence.entity
+
+jwt:
+  secret: 8Zz5tw0Ionm3XPZZfN0NOml3z9FMfmpgXwovR9fp6ryDIoGRM8EPHAB6iHsc0fb
+  validity-in-seconds: 86400
+
+# 调用 AGI 服务用到的配置（代码里通过 @Value("${readify.agi-service.name}") 使用）
+readify:
+  file:
+    storage-type: minio
+    minio:
+      # 容器内 http://minio:9000
+      endpoint: http://milvus-minio:9000   
+      access-key: minioadmin
+      secret-key: minioadmin
+      bucket: readify
+  agi-service:
+    name: readify-agi
+```
+
+- **Data ID：`readify-agi.yaml`**
+
+```yaml
 # 数据库配置
-DB_HOST=localhost
-DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=your_password
-DB_NAME=readify
+DB_HOST: mysql8
+DB_PORT: 3306
+DB_USER: root
+DB_PASSWORD: {密码}
+DB_NAME: readify
 
-# Milvus向量数据库
-MILVUS_HOST=localhost
-MILVUS_PORT=19530
+# 向量库 / 向量服务（按你的实际情况调整）
+MILVUS_HOST: milvus-standalone
+MILVUS_PORT: 19530
+MILVUS_USER: ""
+MILVUS_PASSWORD: ""
+MILVUS_DB_NAME: default
 
-# MinIO对象存储
-MINIO_ENDPOINT=localhost:9000
-MINIO_ACCESS_KEY=minioadmin
-MINIO_SECRET_KEY=minioadmin
+# LlamaParse 配置 https://cloud.llamaindex.ai 自行申请
+LLAMA_PARSE_API_KEY: {LLAMA_PARSE_API_KEY}
 
-# LLM配置
-LLM_API_KEY=your_api_key
-LLM_API_BASE=https://api.openai.com/v1
-LLM_MODEL_NAME=gpt-4o
+# LLM 配置
+LLM_API_KEY: sk-57133487fa5548e1b9f06cfb9dee6506
+# 如http://aaaa:10020/v1
+LLM_API_BASE: {openai格式的地址}
+LLM_MODEL_NAME: {模型名称}
 
-# Embedding模型
-EMBEDDING_API_KEY=your_api_key
-EMBEDDING_API_BASE=https://api.openai.com/v1
-EMBEDDING_MODEL=text-embedding-3-small
+# Embedding 配置
+EMBEDDING_API_KEY: {your_embedding_key}
+EMBEDDING_API_BASE: {your_embedding_url}
+EMBEDDING_MODEL: {your_embedding_model}
 
-# LlamaParse文档解析
-LLAMA_PARSE_API_KEY=your_api_key
+# 文件处理回调到 readify-server 的配置
+FILE_PROCESS_CALLBACK_URL: http://readify-server/file/vectorized-callback
+FILE_PROCESS_CALLBACK_API_KEY: uFjMA2BAZ4xK1b-cfHyPJNF7lFkQ6CDZVk0p7--yGnQ
 
-# Nacos配置（可选）
-NACOS_ENABLED=false
-NACOS_SERVER_ADDR=127.0.0.1:8848
+# 搜索服务
+SERPAPI_API_KEY: {https://serpapi.com/申请}
+
+# 服务自身 & Nacos 注册信息（也可以仅走环境变量）
+SERVICE_NAME: readify-agi
+SERVICE_HOST: ""
+SERVICE_PORT: 8090
+
+# 需要通过服务发现访问的 Java 服务名称
+READIFY_SERVER_SERVICE_NAME: readify-server
+
+MINIO_ENDPOINT: http://milvus-minio:9000
+MINIO_ACCESS_KEY: minioadmin
+MINIO_SECRET_KEY: minioadmin
+MINIO_SECURE: false
+```
+
+- **Data ID：`readify-eval.yaml`**
+
+```yaml
+# readify-eval.yaml
+app:
+  name: "Readify Eval Flow"
+  version: "1.0.0"
+  description: "FastAPI Application with Layered Architecture"
+  debug: false # 生产环境建议设为 false
+  host: "0.0.0.0"
+  port: 8000
+
+database:
+  # 建议使用环境变量替代硬编码
+  url: {readify_eval_flow数据库地址}
+  echo: false
+  pool_size: 5
+  max_overflow: 10
+  pool_pre_ping: true
+
+cors:
+  # 生产环境请务必限制域名
+  allow_origins: 
+    - "*"
+  allow_credentials: true
+  allow_methods: ["*"]
+  allow_headers: ["*"]
+
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  log_dir: "logs"
+  log_file: "app.log"
+  backup_count: 30
+  console_output: true
+  console_level: "DEBUG"
+  file_level: "INFO"
 ```
 
 ### 5. 启动服务
 
 ```bash
-# 启动后端服务
-cd readify_server
-./mvnw spring-boot:run
+# 首次或配置变更后，构建并启动全部应用服务
+docker compose up -d --build
 
-# 启动AGI服务
-cd readify_agi
-pip install -r requirements.txt
-python main.py
+# 后续快速启动（无需重建）
+docker compose up -d
 
-# 启动前端
-cd readify_frontend
-npm install
-npm run dev
+# 查看应用服务状态
+docker compose ps
+
+# 查看应用服务日志
+docker compose logs -f
+
+# 查看单个服务日志
+docker compose logs -f readify-server
+docker compose logs -f readify-agi
+docker compose logs -f readify-eval-backend
+docker compose logs -f readify-nginx
 ```
 
 ### 6. 访问应用
 
 - **前端应用**: http://localhost:5173
+- **管理后台**: http://localhost:5174
+- **评测平台**: http://localhost:5175
 - **Server Swagger**: http://localhost:8080/swagger-ui.html
 - **AGI OpenAPI**: http://localhost:8081/docs
+- **Eval OpenAPI**: http://localhost:8082/docs
 - **Nacos控制台**: http://localhost:8848/nacos (用户名/密码: nacos/nacos)
 - **MinIO控制台**: http://localhost:9001 (用户名/密码: minioadmin/minioadmin)
+
+### 7. Docker 常用运维命令
+
+```bash
+# 停止应用服务（保留数据）
+docker compose down
+
+# 停止基础设施（保留数据）
+docker compose -f infra/docker-compose.yml down
+
+# 停止基础设施并删除数据卷（谨慎）
+docker compose -f infra/docker-compose.yml down -v
+
+# 重建并启动单个应用服务
+docker compose up -d --build readify-server
+
+# 查看基础设施日志
+docker compose -f infra/docker-compose.yml logs -f
+```
 
 ## 开发命令
 
