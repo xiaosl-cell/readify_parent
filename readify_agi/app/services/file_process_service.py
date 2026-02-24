@@ -10,7 +10,7 @@ from app.repositories.file_repository import FileRepository
 from app.services.callback_service import CallbackService
 from app.services.document_service import DocumentService
 from app.services.file_vectorize_service import FileVectorizeService
-from app.services.llama_parse_service import LlamaParseService
+from app.services.parser.parser_service import ParserService
 from app.services.vector_store_service import VectorStoreService, Visibility
 
 logger = logging.getLogger(__name__)
@@ -23,13 +23,13 @@ class FileProcessService:
         self,
         file_repository: FileRepository,
         document_repository: DocumentRepository,
-        llama_parse_service: LlamaParseService,
+        parser_service: ParserService,
         vector_store_service: VectorStoreService,
         callback_service: CallbackService
     ):
         self.file_repository = file_repository
         self.document_repository = document_repository
-        self.llama_parse_service = llama_parse_service
+        self.parser_service = parser_service
         self.vector_store_service = vector_store_service
         self.callback_service = callback_service
 
@@ -64,7 +64,7 @@ class FileProcessService:
             async with async_session_maker():
                 file_repo = FileRepository()
                 doc_repo = DocumentRepository()
-                document_service = DocumentService(doc_repo, file_repo, self.llama_parse_service)
+                document_service = DocumentService(doc_repo, file_repo, self.parser_service)
                 file_vectorize_service = FileVectorizeService(
                     file_repo,
                     doc_repo,

@@ -11,8 +11,8 @@ from app.core.config import settings
 from app.models.document import DocumentCreate
 from app.repositories.document_repository import DocumentRepository
 from app.repositories.file_repository import FileRepository
-from app.services.llama_parse_service import LlamaParseService
 from app.services.object_storage_service import ObjectStorageService
+from app.services.parser.parser_service import ParserService
 
 logger = logging.getLogger(__name__)
 
@@ -24,11 +24,11 @@ class DocumentService:
         self,
         document_repository: DocumentRepository,
         file_repository: FileRepository,
-        llama_parse_service: LlamaParseService
+        parser_service: ParserService
     ):
         self.document_repository = document_repository
         self.file_repository = file_repository
-        self.llama_parse_service = llama_parse_service
+        self.parser_service = parser_service
         self.object_storage_service = ObjectStorageService()
 
     async def parse_and_save(self, file_id: int) -> None:
@@ -50,7 +50,7 @@ class DocumentService:
             file.storage_key
         )
         try:
-            documents = await self.llama_parse_service.parse_file(temp_path)
+            documents = await self.parser_service.parse_file(temp_path)
         finally:
             if os.path.exists(temp_path):
                 os.remove(temp_path)

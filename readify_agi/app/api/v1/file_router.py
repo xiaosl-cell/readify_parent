@@ -8,8 +8,8 @@ from app.repositories.file_repository import FileRepository
 from app.repositories.document_repository import DocumentRepository
 from app.services.file_service import FileService
 from app.services.document_service import DocumentService
-from app.services.llama_parse_service import LlamaParseService
 from app.services.file_vectorize_service import FileVectorizeService
+from app.services.parser import get_parser_service
 from app.services.vector_store_service import VectorStoreService, Visibility
 from app.services.file_search_service import FileSearchService
 from app.services.file_process_service import FileProcessService
@@ -28,8 +28,8 @@ async def get_document_service(db: AsyncSession = Depends(get_db)) -> DocumentSe
     """获取文档服务实例"""
     doc_repository = DocumentRepository(db)
     file_repository = FileRepository(db)
-    llama_service = LlamaParseService()
-    return DocumentService(doc_repository, file_repository, llama_service)
+    parser_service = get_parser_service()
+    return DocumentService(doc_repository, file_repository, parser_service)
 
 async def get_file_vectorize_service(db: AsyncSession = Depends(get_db)) -> FileVectorizeService:
     """获取文件向量化服务实例"""
@@ -52,13 +52,13 @@ async def get_file_process_service(db: AsyncSession = Depends(get_db)) -> FilePr
     """获取文件处理服务实例"""
     file_repository = FileRepository(db)
     document_repository = DocumentRepository(db)
-    llama_parse_service = LlamaParseService()
+    parser_service = get_parser_service()
     vector_store_service = VectorStoreService()
     callback_service = CallbackService()
     return FileProcessService(
         file_repository,
         document_repository,
-        llama_parse_service,
+        parser_service,
         vector_store_service,
         callback_service
     )

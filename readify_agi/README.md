@@ -29,7 +29,7 @@ Readify AGI 是 Readify 智能读书助手的 AGI 底座，主要有如下能力
 - **Agent框架**: LangChain
 - **数据库**: SQLAlchemy, MySQL
 - **向量数据库**: ChromaDB
-- **文档处理**: LlamaParse, PyPDF
+- **文档处理**: Local Parser + OCR, PyPDF
 - **异步处理**: Uvicorn, ASGI
 
 ## 📋 前提条件

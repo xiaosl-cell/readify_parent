@@ -82,7 +82,13 @@ class Settings(BaseSettings):
     MILVUS_DB_NAME: str = os.getenv("MILVUS_DB_NAME", "default")
 
     # LlamaParse配置
-    LLAMA_PARSE_API_KEY: str
+    LLAMA_PARSE_API_KEY: str = os.getenv("LLAMA_PARSE_API_KEY", "")
+
+    # Parser / OCR settings
+    PARSER_PROVIDER: str = os.getenv("PARSER_PROVIDER", "local")
+    OCR_BASE_URL: str = os.getenv("OCR_BASE_URL", "http://localhost:8090")
+    OCR_LANG: str = os.getenv("OCR_LANG", "ch")
+    OCR_TIMEOUT_SEC: int = int(os.getenv("OCR_TIMEOUT_SEC", "120"))
 
     # LLM配置 - 统一的模型配置
     LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")

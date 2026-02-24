@@ -18,12 +18,32 @@ services:
       context: ./readify_agi
       dockerfile: Dockerfile
     container_name: readify-agi
+    depends_on:
+      - readify-ocr
     env_file:
       - ./readify_agi/.env
     environment:
       - NACOS_SERVER_ADDR=nacos-standalone-mysql:8848
+      - OCR_BASE_URL=http://readify-ocr:8090
     ports:
       - "8081:8081"
+    restart: always
+    networks:
+      - readify-net
+
+  readify-ocr:
+    build:
+      context: ./readify_ocr
+      dockerfile: Dockerfile
+    container_name: readify-ocr
+    environment:
+      - OCR_DEVICE=cpu
+      - OCR_LANGUAGE=ch
+      - OCR_USE_DOC_ORIENTATION_CLASSIFY=false
+      - OCR_USE_DOC_UNWARPING=false
+      - OCR_USE_TEXTLINE_ORIENTATION=false
+    ports:
+      - "8090:8090"
     restart: always
     networks:
       - readify-net
