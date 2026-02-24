@@ -95,6 +95,9 @@ class Settings(BaseSettings):
     LLM_API_BASE: str = os.getenv("LLM_API_BASE", "https://api.openai.com/v1")
     LLM_MODEL_NAME: str = os.getenv("LLM_MODEL_NAME", "gpt-4o")
 
+    # 查询改写配置
+    QUERY_REWRITE_ENABLED: bool = os.getenv("QUERY_REWRITE_ENABLED", "true").lower() == "true"
+
     # Embedding模型配置
     EMBEDDING_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
     EMBEDDING_API_BASE: str = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")

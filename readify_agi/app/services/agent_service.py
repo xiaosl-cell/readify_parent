@@ -83,6 +83,11 @@ class AgentService:
         # 用于保存思考过程
         self.all_thoughts = []
 
+        # 缓存当前对话历史文本，供 search_files_tool 查询改写使用
+        self._current_history_text = ""
+        # 查询改写服务（延迟初始化）
+        self._query_rewrite_service = None
+
     async def validation(self):
         if not self.project_id:
             raise ValueError("工程ID不能为空")
@@ -125,17 +130,25 @@ class AgentService:
     def _create_llm(self) -> ChatOpenAI:
         """
         创建语言模型实例
-        
+
         Returns:
             ChatOpenAI: 语言模型实例
         """
         config = get_llm_config()
+        logger.info("[AgentService] 创建LLM实例，配置: %s", config)
         return ChatOpenAI(
             base_url=config["base_url"],
             api_key=config["api_key"],
             model=config["model_name"],
             temperature=self.temperature
         )
+
+    def _get_query_rewrite_service(self):
+        """获取查询改写服务实例（延迟初始化）"""
+        if self._query_rewrite_service is None:
+            from app.services.query_rewrite_service import QueryRewriteService
+            self._query_rewrite_service = QueryRewriteService()
+        return self._query_rewrite_service
     
     async def _load_tools(self) -> List[BaseTool]:
         """
@@ -172,6 +185,18 @@ class AgentService:
                 if not query:
                     logger.warning("[search_files_tool] 查询为空")
                     return "错误: 搜索查询不能为空"
+
+                # 查询改写：结合对话历史改写查询以提升检索质量
+                if settings.QUERY_REWRITE_ENABLED and self._current_history_text:
+                    try:
+                        rewrite_service = self._get_query_rewrite_service()
+                        original_query = query
+                        query = await rewrite_service.rewrite(query, self._current_history_text)
+                        if query != original_query:
+                            logger.info("[search_files_tool] 查询已改写: '%s' -> '%s'",
+                                        original_query, query)
+                    except Exception as e:
+                        logger.warning("[search_files_tool] 查询改写失败，使用原始查询: %s", str(e))
 
                 # 使用当前实例的项目ID
                 project_id = self.project_id
@@ -444,6 +469,9 @@ class AgentService:
                 elif msg["role"] == "assistant":
                     role_name = "助手"
                 history_text += f"{role_name}: {msg['content']}\n"
+
+        # 缓存对话历史文本，供 search_files_tool 查询改写使用
+        self._current_history_text = history_text
 
         # 返回LLM输入上下文
         return {
