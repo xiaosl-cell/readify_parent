@@ -6,10 +6,11 @@
 import logging
 from typing import Optional, Tuple
 
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_openai import ChatOpenAI
 
 from app.core.config import settings
+from app.core.llm_factory import create_chat_model
 
 logger = logging.getLogger(__name__)
 
@@ -22,17 +23,14 @@ class QueryRewriteService:
     def __init__(self, temperature: float = 0.0, max_tokens: int = 256):
         self.temperature = temperature
         self.max_tokens = max_tokens
-        self._llm: Optional[ChatOpenAI] = None
+        self._llm: Optional[BaseChatModel] = None
         self._system_prompt: Optional[str] = None
         self._user_prompt_template: Optional[str] = None
         self._loaded = False
 
-    def _get_llm(self) -> ChatOpenAI:
+    def _get_llm(self) -> BaseChatModel:
         if self._llm is None:
-            self._llm = ChatOpenAI(
-                base_url=settings.LLM_API_BASE,
-                api_key=settings.LLM_API_KEY,
-                model=settings.LLM_MODEL_NAME,
+            self._llm = create_chat_model(
                 temperature=self.temperature,
                 max_tokens=self.max_tokens,
             )

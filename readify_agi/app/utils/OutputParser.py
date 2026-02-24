@@ -5,8 +5,9 @@ from typing import Any, Type, TypeVar, Optional, Dict, Union, Callable, List
 from langchain_core.output_parsers import JsonOutputParser, PydanticOutputParser, BaseOutputParser
 from langchain.output_parsers import OutputFixingParser
 from langchain_core.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
+
+from app.core.llm_factory import create_chat_model
 
 logger = logging.getLogger(__name__)
 
@@ -33,21 +34,21 @@ def _parse_with_llm(
 ) -> Any:
     """
     使用LLM进行解析的核心逻辑
-    
+
     Args:
         instruction: 提取指令
         source_text: 提取源文本
         parser: 解析器实例
-        model: 模型名称
-        
+        model: 模型名称（当 LLM_PROVIDER=openai 时生效，anthropic 时使用统一配置）
+
     Returns:
         解析结果
-        
+
     Raises:
         ValueError: 当解析失败且无法修复时抛出
     """
     # 创建LLM
-    llm = ChatOpenAI(model=model)
+    llm = create_chat_model(temperature=0.7)
     
     # 创建提示模板
     prompt = PromptTemplate(

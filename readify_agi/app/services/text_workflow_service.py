@@ -1,12 +1,75 @@
 import json
+import logging
 import os
 from typing import Dict, Any, List, Literal
 
 import Agently
 import dotenv
+import httpx
 from pydantic import BaseModel, Field
 
+from app.core.config import settings
+from app.core.llm_factory import get_default_headers
 from ..utils.OutputParser import parse_to_type
+
+logger = logging.getLogger(__name__)
+
+
+def _patch_agently_claude_headers(custom_headers: Dict[str, str]):
+    """
+    Monkey-patch Agently Claude 插件的 request_model 方法以注入自定义 HTTP headers。
+    Agently Claude 插件（Agently/plugins/request/Claude.py）硬编码了 headers，
+    不支持通过 settings 配置，因此需要 patch。
+    """
+    from Agently.plugins.request.Claude import Claude
+
+    _orig_request_model = Claude.request_model
+
+    async def _patched_request_model(self, request_data: dict):
+        api_key = self.model_settings.get_trace_back("auth.api_key")
+        base_url = self.model_settings.get_trace_back("url", "https://api.anthropic.com/v1")
+        if base_url.endswith("/"):
+            base_url = base_url[:-1]
+        proxy = self.request.settings.get_trace_back("proxy")
+        messages = request_data["messages"]
+        system_prompt = ""
+        request_messages = []
+        for message in messages:
+            if message["role"] == "system":
+                system_prompt += f"{message['content'][0]['text']}\n"
+            else:
+                request_messages.append(message)
+        options = request_data["options"]
+        if system_prompt != "":
+            options.update({"system": system_prompt})
+        for key, value in self.default_options.items():
+            if key not in options:
+                options.update({key: value})
+        headers = {
+            "x-api-key": api_key,
+            "anthropic-version": "2023-06-01",
+            "content-type": "application/json",
+        }
+        headers.update(custom_headers)
+        request_params = {
+            "headers": headers,
+            "data": json.dumps({"messages": request_messages, **options}),
+            "timeout": None,
+        }
+        client_params = {}
+        if proxy:
+            client_params["proxy"] = proxy
+        async with httpx.AsyncClient(**client_params) as client:
+            async with client.stream(
+                "POST",
+                f"{base_url}/messages",
+                **request_params
+            ) as response:
+                async for chunk in response.aiter_lines():
+                    yield chunk
+
+    Claude.request_model = _patched_request_model
+    logger.info("[TextWorkflow] 已 patch Agently Claude 插件以注入自定义 headers")
 
 
 class CheckFormat(BaseModel):
@@ -30,16 +93,42 @@ class FixFormat(BaseModel):
 class TextWorkflowService:
     def __init__(self):
         dotenv.load_dotenv()
-        api_key = os.getenv("OPENAI_API_KEY")
-        
-        # 创建 agent 工厂并配置
-        self.agent_factory = (
-            Agently.AgentFactory()
-            .set_settings("current_model", "OpenAI")
-            .set_settings("model.OpenAI.model", "gpt-4o")
-            .set_settings("model.OpenAI.auth", {"api_key": api_key})
-            .set_settings("model.OpenAI.temperature", 0.5)
-        )
+
+        provider = settings.LLM_PROVIDER.lower()
+        api_key = settings.LLM_API_KEY
+
+        # 创建 agent 工厂并根据 provider 配置
+        custom_headers = get_default_headers()
+        if provider == "anthropic":
+            # Agently Claude 插件不支持自定义 headers，需要 monkey-patch
+            if custom_headers:
+                _patch_agently_claude_headers(custom_headers)
+            self.agent_factory = (
+                Agently.AgentFactory()
+                .set_settings("current_model", "Claude")
+                .set_settings("model.Claude.auth", {"api_key": api_key})
+                .set_settings("model.Claude.options", {"model": settings.LLM_MODEL_NAME})
+            )
+            # 如果配置了自定义 API 地址且不是默认 OpenAI 地址，则设置
+            if settings.LLM_API_BASE and settings.LLM_API_BASE != "https://api.openai.com/v1":
+                self.agent_factory.set_settings("model.Claude.url", settings.LLM_API_BASE)
+        else:
+            self.agent_factory = (
+                Agently.AgentFactory()
+                .set_settings("current_model", "OpenAI")
+                .set_settings("model.OpenAI.model", settings.LLM_MODEL_NAME)
+                .set_settings("model.OpenAI.auth", {"api_key": api_key})
+                .set_settings("model.OpenAI.temperature", 0.5)
+            )
+            # 如果配置了自定义 API 地址，则设置
+            if settings.LLM_API_BASE and settings.LLM_API_BASE != "https://api.openai.com/v1":
+                self.agent_factory.set_settings("model.OpenAI.url", settings.LLM_API_BASE)
+            # 注入自定义 headers（通过自定义 httpx 客户端）
+            if custom_headers:
+                self.agent_factory.set_settings(
+                    "model.OpenAI.httpx_client",
+                    httpx.AsyncClient(headers=custom_headers),
+                )
         
         # 创建工作流
         self.workflow = Agently.Workflow()

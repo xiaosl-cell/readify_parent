@@ -91,9 +91,13 @@ class Settings(BaseSettings):
     OCR_TIMEOUT_SEC: int = int(os.getenv("OCR_TIMEOUT_SEC", "120"))
 
     # LLM配置 - 统一的模型配置
+    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "openai")  # "openai" | "anthropic"
     LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")
     LLM_API_BASE: str = os.getenv("LLM_API_BASE", "https://api.openai.com/v1")
     LLM_MODEL_NAME: str = os.getenv("LLM_MODEL_NAME", "gpt-4o")
+    # 自定义 HTTP 请求头，JSON 格式，用于绕过 WAF 等场景
+    # 示例: '{"User-Agent": "Mozilla/5.0 ...", "X-Custom": "value"}'
+    LLM_DEFAULT_HEADERS: str = os.getenv("LLM_DEFAULT_HEADERS", "")
 
     # 查询改写配置
     QUERY_REWRITE_ENABLED: bool = os.getenv("QUERY_REWRITE_ENABLED", "true").lower() == "true"

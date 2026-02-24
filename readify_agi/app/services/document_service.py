@@ -5,9 +5,9 @@ from typing import List
 
 from fastapi import HTTPException
 from langchain.prompts import ChatPromptTemplate
-from langchain_openai import ChatOpenAI
 
 from app.core.config import settings
+from app.core.llm_factory import create_chat_model
 from app.models.document import DocumentCreate
 from app.repositories.document_repository import DocumentRepository
 from app.repositories.file_repository import FileRepository
@@ -184,12 +184,7 @@ class DocumentService:
         prompt_template = (await client.get_template("label")).strip()
 
         try:
-            chat = ChatOpenAI(
-                model=settings.LLM_MODEL_NAME,
-                temperature=0.5,
-                api_key=settings.LLM_API_KEY,
-                base_url=settings.LLM_API_BASE,
-            )
+            chat = create_chat_model(temperature=0.5)
 
             prompt = ChatPromptTemplate.from_messages([
                 ("system", "你是一个文本标签生成助手，请生成简短的标签来概括文本内容。"),

@@ -8,9 +8,10 @@ from langchain.prompts import PromptTemplate
 from langchain_core.agents import AgentFinish
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool, tool
-from langchain_openai import ChatOpenAI
+from langchain_core.language_models import BaseChatModel
 
 from app.core.config import settings
+from app.core.llm_factory import create_chat_model
 from app.repositories.assistant_thinking_repository import AssistantThinkingRepository
 from app.repositories.conversation_repository import ConversationRepository
 from app.repositories.document_repository import DocumentRepository
@@ -127,21 +128,16 @@ class AgentService:
         client = get_prompt_client()
         return await client.get_template(template_name)
     
-    def _create_llm(self) -> ChatOpenAI:
+    def _create_llm(self) -> BaseChatModel:
         """
         创建语言模型实例
 
         Returns:
-            ChatOpenAI: 语言模型实例
+            BaseChatModel: 语言模型实例
         """
         config = get_llm_config()
         logger.info("[AgentService] 创建LLM实例，配置: %s", config)
-        return ChatOpenAI(
-            base_url=config["base_url"],
-            api_key=config["api_key"],
-            model=config["model_name"],
-            temperature=self.temperature
-        )
+        return create_chat_model(temperature=self.temperature)
 
     def _get_query_rewrite_service(self):
         """获取查询改写服务实例（延迟初始化）"""
