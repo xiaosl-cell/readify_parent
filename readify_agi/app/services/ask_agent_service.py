@@ -172,7 +172,8 @@ class AskAgentService(AgentService):
             read_file_content,
         ])
 
-        return self.tools
+        self.tools = tools
+        return tools
 
     async def _handle_tool_end(self, event: Dict, callback: Callable, project_id: int) -> None:
         """

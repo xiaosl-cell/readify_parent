@@ -1,12 +1,9 @@
 import json
 import logging
-import re
 from typing import Dict, Any, List, Optional, Union, Callable, Awaitable
 
 import dotenv
-from langchain.agents import AgentExecutor, create_react_agent, create_tool_calling_agent
-from langchain.prompts import PromptTemplate
-from langchain_core.agents import AgentFinish
+from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool, tool
@@ -103,9 +100,8 @@ class AgentService:
         # 异步加载提示词模板（子类可重写）
         await self._load_prompt_template_async()
 
-        # tool_calling 模式下额外加载系统提示词
-        if settings.AGENT_MODE == "tool_calling":
-            self.system_prompt = await self._load_system_prompt_async()
+        # 统一加载系统提示词（仅支持 tool_calling）
+        self.system_prompt = await self._load_system_prompt_async()
 
         # 初始化LLM
         self.llm = self._create_llm()
@@ -273,19 +269,13 @@ class AgentService:
     
     def _create_agent_executor(self) -> Runnable[dict[str, Any], dict[str, Any]]:
         """
-        创建Agent执行器，根据 AGENT_MODE 选择不同的创建策略
+        创建Agent执行器（仅 tool_calling 模式）
 
         Returns:
             AgentExecutor: Agent执行器
         """
-        agent_mode = settings.AGENT_MODE
-
-        if agent_mode == "tool_calling":
-            agent = self._create_tool_calling_agent_inner()
-            logger.info("[AgentService] 使用 tool_calling 模式创建 Agent: %s", self.agent_name)
-        else:
-            agent = self._create_react_agent_inner()
-            logger.info("[AgentService] 使用 react 模式创建 Agent: %s", self.agent_name)
+        agent = self._create_tool_calling_agent_inner()
+        logger.info("[AgentService] 使用 tool_calling 模式创建 Agent: %s", self.agent_name)
 
         # 定义中间步骤裁剪函数 - 最多保留最后5个步骤
         def trim_steps(steps):
@@ -314,17 +304,6 @@ class AgentService:
             "tags": ["streaming"]
         })
 
-    def _create_react_agent_inner(self):
-        """创建文本格式 ReAct Agent（原有逻辑）"""
-        if not self.prompt_template:
-            raise ValueError("未设置提示模板")
-        prompt = PromptTemplate.from_template(self.prompt_template)
-        return create_react_agent(
-            llm=self.llm,
-            tools=self.tools,
-            prompt=prompt
-        )
-
     def _create_tool_calling_agent_inner(self):
         """创建原生工具调用 Agent（使用模型 Function Calling API）"""
         messages = []
@@ -333,11 +312,10 @@ class AgentService:
         if self.system_prompt:
             messages.append(("system", self.system_prompt))
 
-        # 用户提示词模板：复用现有 prompt_template 但去掉 ReAct 特定变量
+        # 用户提示词模板：直接使用 function calling 风格模板
         if self.prompt_template:
-            cleaned = self._clean_react_variables(self.prompt_template)
-            if cleaned.strip():
-                messages.append(("human", cleaned))
+            if self.prompt_template.strip():
+                messages.append(("human", self.prompt_template))
             else:
                 messages.append(("human", "{input}"))
         else:
@@ -353,37 +331,6 @@ class AgentService:
             tools=self.tools,
             prompt=prompt
         )
-
-    @staticmethod
-    def _clean_react_variables(template: str) -> str:
-        """
-        从 ReAct 模板中移除 ReAct 特定的变量和格式说明段落，
-        保留业务上下文变量（如 {input}, {history}, {project_name} 等）。
-        """
-        # 移除 ReAct 特定变量引用
-        cleaned = template.replace("{tools}", "").replace("{tool_names}", "").replace("{agent_scratchpad}", "")
-
-        # 移除包含 ReAct 格式关键词的说明行（非模板变量引用）
-        lines = cleaned.split('\n')
-        filtered_lines = []
-        react_keywords = ['Thought:', 'Action:', 'Action Input:', 'Observation:', 'Final Answer:']
-        skip_block = False
-        for line in lines:
-            # 检测 ReAct 格式说明行
-            if any(kw in line for kw in react_keywords) and '{' not in line:
-                skip_block = True
-                continue
-            # 空行结束跳过块
-            if skip_block and line.strip() == '':
-                skip_block = False
-                continue
-            if not skip_block:
-                filtered_lines.append(line)
-
-        # 清理多余空行
-        result = '\n'.join(filtered_lines)
-        result = re.sub(r'\n{3,}', '\n\n', result)
-        return result.strip()
 
     async def run(self, input_text: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
         """
@@ -580,7 +527,7 @@ class AgentService:
     
     async def _handle_chain_end(self, event: Dict, callback: Callable, project_id: int, query: str) -> bool:
         """
-        处理链结束事件，兼容 ReAct (AgentFinish) 和 tool_calling (dict) 两种输出格式
+        处理链结束事件（tool_calling 输出格式）
 
         Args:
             event: 事件数据
@@ -595,20 +542,14 @@ class AgentService:
 
         final_answer = None
 
-        # 模式一：ReAct Agent 返回 AgentFinish 对象
-        if isinstance(output, AgentFinish):
-            final_answer = output.return_values.get("output")
-
-        # 模式二：Tool Calling Agent 返回 dict 且包含 "output" 键
+        # Tool Calling Agent 返回 dict 且包含 "output" 键
         # 通过 event name 匹配顶层 AgentExecutor，避免误判子链的 on_chain_end
-        elif isinstance(output, dict) and "output" in output and event.get("name") == self.agent_name:
+        if isinstance(output, dict) and "output" in output and event.get("name") == self.agent_name:
             final_answer = output["output"]
 
         if final_answer is not None:
             # Anthropic 的 output 可能是列表格式，统一转换为字符串
             final_answer = self._extract_text_content(final_answer)
-            # 清洗可能泄露的 ReAct 格式文本
-            final_answer = self._sanitize_final_answer(final_answer)
 
             # 发送最终答案
             await callback({
@@ -838,32 +779,6 @@ class AgentService:
                     text_parts.append(block)
             return "".join(text_parts)
         return str(content) if content is not None else ""
-
-    @staticmethod
-    def _sanitize_final_answer(text: str) -> str:
-        """
-        清洗最终回答中可能泄露的 ReAct 格式文本。
-        移除以 Thought:/Action:/Action Input:/Observation:/Final Answer: 等开头的行。
-        如果清洗后内容为空，则保留原始文本（避免吞掉合法内容）。
-        """
-        react_pattern = re.compile(
-            r'^\s*(Thought|Action|Action Input|Observation|Final Answer|Question)\s*:',
-            re.MULTILINE
-        )
-        # 如果文本中没有 ReAct 格式，直接返回
-        if not react_pattern.search(text):
-            return text
-
-        lines = text.split('\n')
-        cleaned_lines = []
-        for line in lines:
-            if react_pattern.match(line):
-                continue
-            cleaned_lines.append(line)
-
-        cleaned = '\n'.join(cleaned_lines).strip()
-        # 如果清洗后为空，保留原始文本
-        return cleaned if cleaned else text
 
     async def _handle_event(self, event: Dict, callback: Callable, project_id: int, query: str) -> Optional[bool]:
         """
