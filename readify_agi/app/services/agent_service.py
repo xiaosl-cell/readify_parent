@@ -1,4 +1,4 @@
-import json
+﻿import json
 import logging
 from typing import Dict, Any, List, Optional, Union, Callable, Awaitable
 
@@ -62,7 +62,7 @@ class AgentService:
         self.agent_executor = None
         self.tools = []
         self.prompt_template = None
-        self.system_prompt = None  # tool_calling 模式下使用的系统提示词
+        self.system_prompt = None
         self.last_kind = None
         
         # 是否保存思考过程到数据库

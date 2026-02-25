@@ -1,5 +1,14 @@
 # Readify - 智能阅读笔记助手
 
+> README Sync Note (2026-02-25)
+>
+> AGI 子工程当前实现已更新，若本文件与 `readify_agi/README.md` 描述不一致，请以 `readify_agi/README.md` 为准。
+>
+> 关键同步点：
+> - `readify_agi` 当前仅支持 Tool Calling（Function Calling）路径。
+> - `AGENT_MODE` 配置已移除。
+> - AGI 流式接口为 `GET /api/v1/agent/stream`（SSE 事件流）。
+
 <div align="center">
   <h3>基于AI的智能阅读笔记和思维导图生成工具</h3>
 

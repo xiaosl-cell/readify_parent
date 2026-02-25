@@ -1,165 +1,180 @@
-# 📚 Readify AGI
+# Readify AGI
 
-<div align="center">
-  <h3>Readify智能读书助手的AGI底座</h3>
-  <p>基于多智能体协作的复杂任务解决方案</p>
-  
-  ![Python](https://img.shields.io/badge/Python-3.9-3776AB?style=for-the-badge&logo=python&logoColor=white)
-  ![FastAPI](https://img.shields.io/badge/FastAPI-0.100.0+-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-  ![OpenAI](https://img.shields.io/badge/OpenAI-412991?style=for-the-badge&logo=openai&logoColor=white)
-  ![LangChain](https://img.shields.io/badge/LangChain-2C2D72?style=for-the-badge&logo=chainlink&logoColor=white)
-</div>
+Readify AGI 是 Readify 智能阅读系统的后端 Agent 服务，基于 FastAPI + LangChain，提供多智能体协作、流式输出、文档检索与问答能力。
 
-## ✨ 功能特点
+## 当前架构
 
-Readify AGI 是 Readify 智能读书助手的 AGI 底座，主要有如下能力:
+### 架构类型
 
-- 🧠 **智能任务分发** - 基于用户查询自动选择最合适的专业 Agent
-- 🤝 **多Agent协作** - 将复杂任务分解为子任务，由不同专业 Agent 协同完成
-- 🔄 **工作流管理** - 定义和执行复杂的多 Agent 协作工作流
-- 📝 **流式输出** - 实时展示思考过程和工具执行结果
-- 💬 **会话记忆** - 保存对话历史和思考过程，支持上下文理解和长期记忆
-- 📄 **文档处理** - 支持文档解析、向量化和语义搜索
-- ✏️ **文本修复** - 智能识别和修复文本问题
+- 多智能体层级架构（Manager-Worker）
+- 子 Agent 内核为单智能体 Tool Calling（Function Calling）
 
-## 🛠️ 技术栈
+### 核心组件
 
-- **后端框架**: FastAPI, Python 3.11
-- **大语言模型**: OpenAI, Qwen, Deepseek...
-- **Agent框架**: LangChain
-- **数据库**: SQLAlchemy, MySQL
-- **向量数据库**: ChromaDB
-- **文档处理**: Local Parser + OCR, PyPDF
-- **异步处理**: Uvicorn, ASGI
+- `CoordinatorAgentService`
+  - 负责统一接收任务、选择/委派子 Agent、整合结果。
+- `AskAgentService`
+  - 面向文档问答，包含向量检索、项目文件查询、文件全文读取、可选联网搜索工具。
+- `NoteAgentService`
+  - 面向笔记与思维导图相关任务。
+- `AgentService`
+  - 所有 Agent 的基类，负责 LLM 初始化、工具加载、事件流处理、会话与思考过程存储。
 
-## 📋 前提条件
+### 执行链路
+
+1. 客户端调用 `GET /api/v1/agent/stream`
+2. 路由构建 `CoordinatorAgentService` 并注册 `AskAgentService`、`NoteAgentService`
+3. Coordinator 按任务类型与上下文决定是否调用 `delegate_task`
+4. 子 Agent 通过 Tool Calling 执行工具并流式返回
+5. 最终答案和中间事件通过 SSE 持续输出
+
+对应代码：
+
+- `app/api/v1/agent_router.py`
+- `app/services/coordinator_agent_service.py`
+- `app/services/ask_agent_service.py`
+- `app/services/note_agent_service.py`
+- `app/services/agent_service.py`
+
+## 重要说明
+
+- 当前仅支持 Tool Calling 路径。
+- 已移除 `AGENT_MODE` 配置，README 与配置文件均不再包含 ReAct 模式切换。
+
+## 核心能力
+
+- 多智能体任务拆解与协作
+- 文档向量检索与上下文问答
+- 思维导图相关结构化操作（Note Agent）
+- 流式事件输出（thought/tool/final_answer）
+- 对话与思考过程持久化
+
+## 快速开始
+
+### 1. 环境准备
 
 - Python 3.11
-- Conda 或 pip 包管理工具
+- pip 或 conda
 
-## 🚀 快速开始
-
-1. 确保本地conda环境已安装并能够正常工作
-
-2. 创建、激活conda环境，安装依赖
+### 2. 安装依赖
 
 ```bash
-# 1. 创建新的conda环境
-conda create -n readify_agi python=3.11 -y
-
-# 2. 激活环境
-conda activate readify_agi
-
-# 3. 配置pip镜像源（可选）
-pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple/
-
-# 4. 安装依赖
+cd readify_agi
 pip install -r requirements.txt
 ```
 
-3. 启动服务
+### 3. 配置环境变量
+
+```bash
+cp .env.example .env
+```
+
+至少需要配置：
+
+- `LLM_PROVIDER`
+- `LLM_API_KEY`
+- `LLM_API_BASE`
+- `LLM_MODEL_NAME`
+- 数据库连接相关配置
+
+### 4. 启动服务
 
 ```bash
 python main.py
 ```
 
-服务默认在 `http://localhost:8081` 启动
+默认地址：
 
-## 🧩 项目结构
+- `http://localhost:8081`
+- Swagger: `http://localhost:8081/docs`
 
-```
-readify_agi/
-├── app/                    # 应用核心代码
-│   ├── api/                # API 接口定义
-│   ├── core/               # 核心功能模块
-│   ├── models/             # 数据模型
-│   ├── repositories/       # 数据访问层
-│   ├── services/           # 业务逻辑服务
-│   ├── static/             # 静态资源
-│   └── utils/              # 工具函数
-├── prompt/                 # 提示词模板
-├── static/                 # 全局静态资源
-├── test/                   # 测试代码
-├── main.py                 # 应用入口
-├── environment.yml         # Conda 环境配置
-└── README.md               # 项目文档
-```
+## Agent 相关配置
 
-## 💻 开发指南
+以下配置与当前 Agent 架构直接相关：
 
-### 创建专业 Agent
+- `LLM_PROVIDER`：`openai` 或 `anthropic`
+- `LLM_API_KEY`：LLM 访问密钥
+- `LLM_API_BASE`：LLM API 基础地址
+- `LLM_MODEL_NAME`：模型名
+- `LLM_DEFAULT_HEADERS`：可选，自定义请求头（JSON 字符串）
+- `QUERY_REWRITE_ENABLED`：是否启用检索前查询改写
+- `SERPAPI_API_KEY`：可选，Ask Agent 联网搜索能力
 
-继承基础的 `AgentService` 类来创建专业 Agent：
+## 如何新增专业 Agent
+
+继承 `AgentService` 并实现三个扩展点：
+
+- `_load_prompt_template_async`
+- `_load_system_prompt_async`
+- `_load_tools`
+
+示例：
 
 ```python
+from typing import Any, Dict, List, Optional
+from langchain_core.tools import BaseTool, tool
 from app.services.agent_service import AgentService
 
+
 class CustomAgentService(AgentService):
-    """自定义专业 Agent"""
-    
-    def __init__(self, db, project_id, model_name="gpt-4o", temperature=0.5):
-        super().__init__(db, project_id, model_name, temperature)
-        self.description = "专门处理特定领域任务的智能体"
-        # 设置专用的提示模板
-        self.prompt_template = "..."
+    def __init__(self, project_id: int, context: Dict[str, Any] | None = None):
+        super().__init__(project_id=project_id, context=context)
+
+    async def _load_prompt_template_async(self):
+        self.prompt_template = await self._load_prompt_from_client("custom_agent")
+
+    async def _load_system_prompt_async(self) -> Optional[str]:
+        return await self._load_system_prompt_from_client("custom_agent")
+
+    async def _load_tools(self) -> List[BaseTool]:
+        tools = await super()._load_tools()
+
+        @tool
+        async def custom_tool(input_str: str) -> str:
+            return f"custom result: {input_str}"
+
+        tools.append(custom_tool)
+        self.tools = tools
+        return tools
 ```
 
-### 配置并使用协调 Agent
+然后在协调器初始化处注册该 Agent（参考 `app/api/v1/agent_router.py`）。
 
-```python
-from app.services.coordinator_agent_service import CoordinatorAgentService
+## 主要接口
 
-# 创建协调 Agent
-coordinator = CoordinatorAgentService(db, project_id)
+### `GET /api/v1/agent/stream`
 
-# 注册专业 Agent
-coordinator.register_agent("custom", CustomAgentService(db, project_id))
+关键参数：
 
-# 处理用户查询
-async def handle_response(response):
-    print(response)
+- `query`：用户输入
+- `project_id`：项目 ID
+- `task_type`：任务类型（由依赖注入读取，常用 `ask` / `note`）
+- `context`：JSON 字符串（可 URL 编码）
 
-await coordinator.generate_stream_response(
-    query="执行特定任务的指令",
-    callback=handle_response,
-    db=db,
-    project_id=project_id
-)
+返回：SSE 流，事件类型示例：
+
+- `thought`
+- `tool_error`
+- `final_answer`
+- `[DONE]`
+
+## 项目结构
+
+```text
+readify_agi/
+  app/
+    api/
+    core/
+    models/
+    repositories/
+    services/
+    static/
+    utils/
+  data/
+  migrations/
+  scripts/
+  tests/
+  .env.example
+  main.py
+  requirements.txt
 ```
-
-## 🤖 现有专业 Agent
-
-- **Agent Service**: 基础智能体服务
-- **Coordinator Agent**: 智能体调度器
-- **Note Agent**: 笔记生成智能体
-- **Ask Agent**: 知识问答智能体
-
-## 🔧 提供能力
-
-- **智能体协调**: 支持多智能体协作，动态分配和管理任务
-- **文档处理**: 支持多种格式文档的解析、向量化和语义理解
-- **知识问答**: 基于文档内容的智能问答和知识推理
-- **笔记管理**: 自动生成和组织文档笔记
-- **实时反馈**: 提供流式输出，实时展示智能体思考过程
-
-## 📡 API 接口
-
-访问 `http://localhost:8081/docs` 查看完整的 API 文档
-
-## 🤝 贡献指南
-
-1. Fork 本项目
-2. 创建您的特性分支 (`git checkout -b feature/amazing-feature`)
-3. 提交您的更改 (`git commit -m 'Add some amazing feature'`)
-4. 推送到分支 (`git push origin feature/amazing-feature`)
-5. 打开一个 Pull Request
-
-## 📄 许可证
-
-[MIT License](LICENSE)
-
----
-
-<div align="center">
-  <p>Made with ❤️ by Readify AGI</p>
-</div> 
