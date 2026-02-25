@@ -100,7 +100,7 @@ class CoordinatorAgentService(AgentService):
         Returns:
             List[BaseTool]: 工具列表
         """
-        tools = await super()._load_tools()
+        tools = []
 
         @tool
         async def list_available_agents() -> str:
