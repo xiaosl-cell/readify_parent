@@ -1,11 +1,13 @@
 import json
 import logging
+import re
 from typing import Dict, Any, List, Optional, Union, Callable, Awaitable
 
 import dotenv
-from langchain.agents import AgentExecutor, create_react_agent
+from langchain.agents import AgentExecutor, create_react_agent, create_tool_calling_agent
 from langchain.prompts import PromptTemplate
 from langchain_core.agents import AgentFinish
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool, tool
 from langchain_core.language_models import BaseChatModel
@@ -63,6 +65,7 @@ class AgentService:
         self.agent_executor = None
         self.tools = []
         self.prompt_template = None
+        self.system_prompt = None  # tool_calling 模式下使用的系统提示词
         self.last_kind = None
         
         # 是否保存思考过程到数据库
@@ -100,6 +103,10 @@ class AgentService:
         # 异步加载提示词模板（子类可重写）
         await self._load_prompt_template_async()
 
+        # tool_calling 模式下额外加载系统提示词
+        if settings.AGENT_MODE == "tool_calling":
+            self.system_prompt = await self._load_system_prompt_async()
+
         # 初始化LLM
         self.llm = self._create_llm()
 
@@ -107,12 +114,30 @@ class AgentService:
         self.tools = await self._load_tools()
 
         # 创建Agent执行器
-        if self.prompt_template:
+        if self.prompt_template or self.system_prompt:
             self.agent_executor = self._create_agent_executor()
 
     async def _load_prompt_template_async(self):
         """异步模板加载钩子，子类重写以从远程或本地加载提示词模板"""
         pass
+
+    async def _load_system_prompt_async(self) -> Optional[str]:
+        """异步系统提示词加载钩子，tool_calling 模式下使用。子类可重写。"""
+        return None
+
+    async def _load_system_prompt_from_client(self, template_name: str) -> Optional[str]:
+        """
+        通过 PromptTemplateClient 从缓存中加载系统提示词
+
+        Args:
+            template_name: 模板编码
+
+        Returns:
+            系统提示词字符串，若未设置则返回 None
+        """
+        from app.core.prompt_template_client import get_prompt_client
+        client = get_prompt_client()
+        return await client.get_system_prompt(template_name)
 
     async def _load_prompt_from_client(self, template_name: str) -> str:
         """
@@ -248,21 +273,20 @@ class AgentService:
     
     def _create_agent_executor(self) -> Runnable[dict[str, Any], dict[str, Any]]:
         """
-        创建Agent执行器
-        
+        创建Agent执行器，根据 AGENT_MODE 选择不同的创建策略
+
         Returns:
             AgentExecutor: Agent执行器
         """
-        if not self.prompt_template:
-            raise ValueError("未设置提示模板")
-            
-        prompt = PromptTemplate.from_template(self.prompt_template)
-        agent = create_react_agent(
-            llm=self.llm,
-            tools=self.tools,
-            prompt=prompt
-        )
-        
+        agent_mode = settings.AGENT_MODE
+
+        if agent_mode == "tool_calling":
+            agent = self._create_tool_calling_agent_inner()
+            logger.info("[AgentService] 使用 tool_calling 模式创建 Agent: %s", self.agent_name)
+        else:
+            agent = self._create_react_agent_inner()
+            logger.info("[AgentService] 使用 react 模式创建 Agent: %s", self.agent_name)
+
         # 定义中间步骤裁剪函数 - 最多保留最后5个步骤
         def trim_steps(steps):
             """只保留最近的5个步骤，防止上下文过大"""
@@ -270,21 +294,96 @@ class AgentService:
                 return steps[-5:]
             return steps
 
-        # 使用与demo相同的构造方式：先创建AgentExecutor实例，然后链式调用with_config
-        # 确保使用self.agent_name作为run_name，避免传递None
+        def _handle_parsing_error(_error) -> str:
+            """自定义解析错误处理，为弱模型提供更具指导性的提示"""
+            return (
+                "输出格式解析失败。请直接回答用户的问题，"
+                "或使用可用的工具获取信息后再回答。不要输出多余的格式文本。"
+            )
+
         return AgentExecutor(
             agent=agent,
             tools=self.tools,
             verbose=True,
-            handle_parsing_errors=True,
-            # 添加以下配置以支持更详细的中间步骤追踪
-            return_intermediate_steps=True,  # 返回中间步骤
-            trim_intermediate_steps=trim_steps,  # 裁剪中间步骤，防止过长
-            max_iterations=10  # 限制最大迭代次数
+            handle_parsing_errors=_handle_parsing_error,
+            return_intermediate_steps=True,
+            trim_intermediate_steps=trim_steps,
+            max_iterations=20
         ).with_config({
-            "run_name": self.agent_name,  # 使用实例中的agent_name
-            "tags": ["streaming"]  # 添加标签以便于识别
+            "run_name": self.agent_name,
+            "tags": ["streaming"]
         })
+
+    def _create_react_agent_inner(self):
+        """创建文本格式 ReAct Agent（原有逻辑）"""
+        if not self.prompt_template:
+            raise ValueError("未设置提示模板")
+        prompt = PromptTemplate.from_template(self.prompt_template)
+        return create_react_agent(
+            llm=self.llm,
+            tools=self.tools,
+            prompt=prompt
+        )
+
+    def _create_tool_calling_agent_inner(self):
+        """创建原生工具调用 Agent（使用模型 Function Calling API）"""
+        messages = []
+
+        # 系统提示词
+        if self.system_prompt:
+            messages.append(("system", self.system_prompt))
+
+        # 用户提示词模板：复用现有 prompt_template 但去掉 ReAct 特定变量
+        if self.prompt_template:
+            cleaned = self._clean_react_variables(self.prompt_template)
+            if cleaned.strip():
+                messages.append(("human", cleaned))
+            else:
+                messages.append(("human", "{input}"))
+        else:
+            messages.append(("human", "{input}"))
+
+        # agent_scratchpad 是 create_tool_calling_agent 必需的
+        messages.append(MessagesPlaceholder("agent_scratchpad"))
+
+        prompt = ChatPromptTemplate.from_messages(messages)
+
+        return create_tool_calling_agent(
+            llm=self.llm,
+            tools=self.tools,
+            prompt=prompt
+        )
+
+    @staticmethod
+    def _clean_react_variables(template: str) -> str:
+        """
+        从 ReAct 模板中移除 ReAct 特定的变量和格式说明段落，
+        保留业务上下文变量（如 {input}, {history}, {project_name} 等）。
+        """
+        # 移除 ReAct 特定变量引用
+        cleaned = template.replace("{tools}", "").replace("{tool_names}", "").replace("{agent_scratchpad}", "")
+
+        # 移除包含 ReAct 格式关键词的说明行（非模板变量引用）
+        lines = cleaned.split('\n')
+        filtered_lines = []
+        react_keywords = ['Thought:', 'Action:', 'Action Input:', 'Observation:', 'Final Answer:']
+        skip_block = False
+        for line in lines:
+            # 检测 ReAct 格式说明行
+            if any(kw in line for kw in react_keywords) and '{' not in line:
+                skip_block = True
+                continue
+            # 空行结束跳过块
+            if skip_block and line.strip() == '':
+                skip_block = False
+                continue
+            if not skip_block:
+                filtered_lines.append(line)
+
+        # 清理多余空行
+        result = '\n'.join(filtered_lines)
+        result = re.sub(r'\n{3,}', '\n\n', result)
+        return result.strip()
 
     async def run(self, input_text: Union[str, Dict[str, Any]]) -> Dict[str, Any]:
         """
@@ -481,28 +580,43 @@ class AgentService:
     
     async def _handle_chain_end(self, event: Dict, callback: Callable, project_id: int, query: str) -> bool:
         """
-        处理链结束事件，子类可以重写以添加自定义逻辑
-        
+        处理链结束事件，兼容 ReAct (AgentFinish) 和 tool_calling (dict) 两种输出格式
+
         Args:
             event: 事件数据
             callback: 回调函数
             project_id: 项目ID
             query: 用户查询
-            
+
         Returns:
             bool: 是否处理完成
         """
         output = event["data"].get("output", {})
+
+        final_answer = None
+
+        # 模式一：ReAct Agent 返回 AgentFinish 对象
         if isinstance(output, AgentFinish):
-            # 获取最终输出
-            final_answer = output.return_values["output"]
+            final_answer = output.return_values.get("output")
+
+        # 模式二：Tool Calling Agent 返回 dict 且包含 "output" 键
+        # 通过 event name 匹配顶层 AgentExecutor，避免误判子链的 on_chain_end
+        elif isinstance(output, dict) and "output" in output and event.get("name") == self.agent_name:
+            final_answer = output["output"]
+
+        if final_answer is not None:
+            # Anthropic 的 output 可能是列表格式，统一转换为字符串
+            final_answer = self._extract_text_content(final_answer)
+            # 清洗可能泄露的 ReAct 格式文本
+            final_answer = self._sanitize_final_answer(final_answer)
+
             # 发送最终答案
             await callback({
                 'type': 'final_answer',
                 'content': f'{final_answer}',
                 'project_id': project_id
             })
-            
+
             # 只有当should_save_thinking为True时才保存对话记录和思考过程
             if self.should_save_thinking:
                 # 保存用户问题和助手回答
@@ -515,7 +629,7 @@ class AgentService:
                         priority=2,
                         is_included_in_context=True
                     )
-                    
+
                     # 保存助手回答
                     assist_message = await self.conversation_repo.create(
                         project_id=project_id,
@@ -524,11 +638,11 @@ class AgentService:
                         priority=2,
                         is_included_in_context=True
                     )
-                    
+
                     # 保存思考过程
                     if self.all_thoughts:
                         complete_thinking = "".join(self.all_thoughts)
-                        
+
                         await self.thinking_repo.create(
                             project_id=project_id,
                             user_message_id=assist_message.id,
@@ -540,21 +654,30 @@ class AgentService:
                         'content': f'保存对话记录时出错: {str(e)}',
                         'project_id': project_id
                     })
-            
+
             return True
-        
+
         return False
     
     async def _handle_chat_model_stream(self, event: Dict, callback: Callable, project_id: int) -> None:
         """
-        处理聊天模型流事件，子类可以重写以添加自定义逻辑
-        
+        处理聊天模型流事件
+
         Args:
             event: 事件数据
             callback: 回调函数
             project_id: 项目ID
         """
         content = event["data"]["chunk"].content
+        # tool_calling 模式下，工具调用 chunk 的 content 为空，跳过
+        if not content:
+            return
+
+        # Anthropic 流式响应的 content 可能是列表形式，统一提取为字符串
+        content = self._extract_text_content(content)
+        if not content:
+            return
+
         # 直接发出
         await callback({
             'type': 'thought',
@@ -695,7 +818,53 @@ class AgentService:
                 'content': f'保存错误记录时出错: {str(e)}',
                 'project_id': project_id
             })
-    
+
+    @staticmethod
+    def _extract_text_content(content) -> str:
+        """
+        统一提取文本内容。
+
+        Anthropic 的 message.content 可能是列表形式 [{"type": "text", "text": "..."}]，
+        而 OpenAI 始终是字符串。此方法将两种格式统一为纯字符串。
+        """
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            text_parts = []
+            for block in content:
+                if isinstance(block, dict) and block.get("type") == "text":
+                    text_parts.append(block.get("text", ""))
+                elif isinstance(block, str):
+                    text_parts.append(block)
+            return "".join(text_parts)
+        return str(content) if content is not None else ""
+
+    @staticmethod
+    def _sanitize_final_answer(text: str) -> str:
+        """
+        清洗最终回答中可能泄露的 ReAct 格式文本。
+        移除以 Thought:/Action:/Action Input:/Observation:/Final Answer: 等开头的行。
+        如果清洗后内容为空，则保留原始文本（避免吞掉合法内容）。
+        """
+        react_pattern = re.compile(
+            r'^\s*(Thought|Action|Action Input|Observation|Final Answer|Question)\s*:',
+            re.MULTILINE
+        )
+        # 如果文本中没有 ReAct 格式，直接返回
+        if not react_pattern.search(text):
+            return text
+
+        lines = text.split('\n')
+        cleaned_lines = []
+        for line in lines:
+            if react_pattern.match(line):
+                continue
+            cleaned_lines.append(line)
+
+        cleaned = '\n'.join(cleaned_lines).strip()
+        # 如果清洗后为空，保留原始文本
+        return cleaned if cleaned else text
+
     async def _handle_event(self, event: Dict, callback: Callable, project_id: int, query: str) -> Optional[bool]:
         """
         处理事件，判断事件类型并调用相应的处理方法

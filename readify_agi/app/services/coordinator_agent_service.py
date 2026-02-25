@@ -1,7 +1,7 @@
 import json
 import logging
 
-from typing import Dict, Any, Callable, List
+from typing import Dict, Any, Callable, List, Optional
 
 from langchain_core.tools import BaseTool, tool
 
@@ -48,6 +48,13 @@ class CoordinatorAgentService(AgentService):
         """从 eval API 加载协调器专用的提示模板"""
         self.prompt_template = await self._load_prompt_from_client("coordinator")
         logger.info("成功加载协调器提示模板")
+
+    async def _load_system_prompt_async(self) -> Optional[str]:
+        """从 eval API 加载协调器的系统提示词（tool_calling 模式使用）"""
+        prompt = await self._load_system_prompt_from_client("coordinator")
+        if prompt:
+            logger.info("成功加载协调器系统提示词")
+        return prompt
 
     def register_agent(self, agent_name: str, agent_service: AgentService) -> None:
         """

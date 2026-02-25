@@ -99,6 +99,9 @@ class Settings(BaseSettings):
     # 示例: '{"User-Agent": "Mozilla/5.0 ...", "X-Custom": "value"}'
     LLM_DEFAULT_HEADERS: str = os.getenv("LLM_DEFAULT_HEADERS", "")
 
+    # Agent 执行模式: "tool_calling" (原生函数调用，推荐) 或 "react" (文本ReAct格式)
+    AGENT_MODE: str = os.getenv("AGENT_MODE", "tool_calling")
+
     # 查询改写配置
     QUERY_REWRITE_ENABLED: bool = os.getenv("QUERY_REWRITE_ENABLED", "true").lower() == "true"
 

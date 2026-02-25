@@ -16,6 +16,27 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 
+def _normalize_anthropic_base_url(url: str) -> str:
+    """
+    规范化 Anthropic API 的 base_url。
+
+    Anthropic SDK 会在 base_url 后自动追加 /v1/messages，
+    因此需要从用户配置的 URL 中移除可能包含的 /v1/messages 或 /v1 后缀，
+    避免路径重复（如 /v1/v1/messages）。
+
+    示例:
+        https://example.com/proxy/v1/messages → https://example.com/proxy
+        https://example.com/proxy/v1          → https://example.com/proxy
+        https://example.com/proxy             → https://example.com/proxy（不变）
+    """
+    url = url.rstrip('/')
+    if url.endswith('/v1/messages'):
+        url = url[:-len('/v1/messages')]
+    elif url.endswith('/v1'):
+        url = url[:-len('/v1')]
+    return url
+
+
 def _parse_default_headers() -> Dict[str, str]:
     """解析 LLM_DEFAULT_HEADERS 配置，返回 headers 字典。"""
     raw = settings.LLM_DEFAULT_HEADERS.strip()
@@ -67,7 +88,13 @@ def create_chat_model(
             **kwargs,
         }
         if settings.LLM_API_BASE and settings.LLM_API_BASE != "https://api.openai.com/v1":
-            build_kwargs["base_url"] = settings.LLM_API_BASE
+            # Anthropic SDK 会自动在 base_url 后追加 /v1/messages，
+            # 需要规范化以避免 /v1/v1/messages 等路径重复问题。
+            # 使用 anthropic_api_url 参数名以兼容 langchain-anthropic 所有版本（0.1.0+）
+            normalized_url = _normalize_anthropic_base_url(settings.LLM_API_BASE)
+            build_kwargs["anthropic_api_url"] = normalized_url
+            logger.info("[LLM Factory] Anthropic base_url 规范化: %s -> %s",
+                        settings.LLM_API_BASE, normalized_url)
         if default_headers:
             build_kwargs["default_headers"] = default_headers
 

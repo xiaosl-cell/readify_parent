@@ -1,7 +1,7 @@
 import json
 import logging
 
-from typing import Dict, Callable, List, Any
+from typing import Dict, Callable, List, Any, Optional
 
 from langchain_core.tools import BaseTool, tool
 
@@ -47,6 +47,13 @@ class NoteAgentService(AgentService):
         """从 eval API 加载笔记Agent的提示模板"""
         self.prompt_template = await self._load_prompt_from_client("note_agent")
         logger.info("成功加载笔记Agent提示模板")
+
+    async def _load_system_prompt_async(self) -> Optional[str]:
+        """从 eval API 加载笔记Agent的系统提示词（tool_calling 模式使用）"""
+        prompt = await self._load_system_prompt_from_client("note_agent")
+        if prompt:
+            logger.info("成功加载笔记Agent系统提示词")
+        return prompt
 
     async def _load_tools(self) -> List[BaseTool]:
         """

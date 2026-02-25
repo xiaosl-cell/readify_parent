@@ -1,7 +1,7 @@
 import json
 import logging
 
-from typing import List, Dict, Any, Callable
+from typing import List, Dict, Any, Callable, Optional
 
 from langchain_community.utilities import SerpAPIWrapper
 from langchain_core.tools import tool, BaseTool, Tool
@@ -44,6 +44,13 @@ class AskAgentService(AgentService):
         """从 eval API 加载问答Agent的提示模板"""
         self.prompt_template = await self._load_prompt_from_client("ask_agent")
         logger.info("成功加载问答Agent提示模板")
+
+    async def _load_system_prompt_async(self) -> Optional[str]:
+        """从 eval API 加载问答Agent的系统提示词（tool_calling 模式使用）"""
+        prompt = await self._load_system_prompt_from_client("ask_agent")
+        if prompt:
+            logger.info("成功加载问答Agent系统提示词")
+        return prompt
 
     async def _load_tools(self) -> List[BaseTool]:
         """
