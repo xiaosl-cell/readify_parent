@@ -186,10 +186,14 @@ class AskAgentService(AgentService):
         """
         tool_name = event["name"]
         tool_output = event["data"]["output"]
+        display_output = str(tool_output)[:1000] if tool_output else ""
 
         await callback({
-            'type': "thought",
-            'content': tool_output,
+            'type': 'tool_result',
+            'content': display_output,
+            'tool_name': tool_name,
+            'tool_output': display_output,
+            'agent_name': self.agent_name,
             'project_id': project_id
         })
 

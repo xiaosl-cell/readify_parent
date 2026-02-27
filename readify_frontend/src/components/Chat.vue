@@ -4,12 +4,87 @@
     <div class="chat-history" ref="chatHistory">
       <div v-for="(message, index) in messages" :key="index" class="message-wrapper">
         <div class="message" :class="{ 'user-message': message.isUser }">
-          <div v-if="message.thought && !message.isUser" class="thought-section">
+          <div v-if="((message.thoughtSteps && message.thoughtSteps.length > 0) || message.thought) && !message.isUser" class="thought-section">
             <div class="thought-header" @click="toggleThought(index)">
               <el-icon><ArrowDown v-if="!message.thoughtExpanded" /><ArrowUp v-else /></el-icon>
               <span>思考过程</span>
             </div>
-            <div v-show="message.thoughtExpanded" class="thought-content" v-html="formatMessage(message.thought)"></div>
+            <div v-show="message.thoughtExpanded" class="thought-content">
+              <!-- 结构化步骤渲染 -->
+              <template v-if="message.thoughtSteps && message.thoughtSteps.length > 0">
+                <div v-for="(step, stepIdx) in message.thoughtSteps" :key="stepIdx" class="thought-step" :class="'step-' + step.type">
+                  <!-- LLM 思考文本 -->
+                  <div v-if="step.type === 'thinking'" class="step-thinking">
+                    <span class="step-agent-badge" v-if="step.agentName">{{ step.agentName }}</span>
+                    <span v-html="formatMessage(step.content)"></span>
+                  </div>
+                  <!-- 工具调用开始 -->
+                  <div v-else-if="step.type === 'tool_start'" class="step-tool-start">
+                    <div class="step-icon-wrap"><span class="step-icon-text">🔧</span></div>
+                    <div class="step-body">
+                      <span class="step-agent-badge" v-if="step.agentName">{{ step.agentName }}</span>
+                      <span class="step-label">调用工具</span>
+                      <code class="tool-name-tag">{{ step.toolName }}</code>
+                      <div v-if="step.toolInput" class="tool-detail-block">
+                        <details>
+                          <summary>查看输入参数</summary>
+                          <pre class="tool-pre">{{ step.toolInput }}</pre>
+                        </details>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- 工具返回结果 -->
+                  <div v-else-if="step.type === 'tool_result'" class="step-tool-result">
+                    <div class="step-icon-wrap"><span class="step-icon-text">✅</span></div>
+                    <div class="step-body">
+                      <span class="step-label">工具结果</span>
+                      <code class="tool-name-tag">{{ step.toolName }}</code>
+                      <div class="tool-detail-block">
+                        <details>
+                          <summary>查看输出结果</summary>
+                          <pre class="tool-pre">{{ step.toolOutput || step.content }}</pre>
+                        </details>
+                      </div>
+                    </div>
+                  </div>
+                  <!-- 工具错误 -->
+                  <div v-else-if="step.type === 'tool_error'" class="step-tool-error">
+                    <div class="step-icon-wrap"><span class="step-icon-text">❌</span></div>
+                    <div class="step-body">
+                      <span class="step-label">工具错误</span>
+                      <code class="tool-name-tag" v-if="step.toolName">{{ step.toolName }}</code>
+                      <div class="error-detail">{{ step.content }}</div>
+                    </div>
+                  </div>
+                  <!-- 委派开始 -->
+                  <div v-else-if="step.type === 'delegation_start'" class="step-delegation-start">
+                    <div class="step-icon-wrap"><span class="step-icon-text">🚀</span></div>
+                    <div class="step-body">
+                      <span class="step-label">委派任务给</span>
+                      <code class="agent-name-tag">{{ step.delegateTo }}</code>
+                      <div v-if="step.task" class="delegation-task">{{ step.task }}</div>
+                    </div>
+                  </div>
+                  <!-- 委派完成 -->
+                  <div v-else-if="step.type === 'delegation_end'" class="step-delegation-end">
+                    <div class="step-icon-wrap"><span class="step-icon-text">✅</span></div>
+                    <div class="step-body">
+                      <span class="step-label">{{ step.delegateTo }} 完成任务</span>
+                      <div v-if="step.summary" class="tool-detail-block">
+                        <details>
+                          <summary>查看结果摘要</summary>
+                          <div v-html="formatMessage(step.summary)"></div>
+                        </details>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <!-- 向后兼容：纯文本 thought（旧数据） -->
+              <template v-else-if="message.thought">
+                <div v-html="formatMessage(message.thought)"></div>
+              </template>
+            </div>
           </div>
           <div class="message-content" :class="{ 'error-message': message.isError }" v-html="formatMessage(message.content)">
           </div>
@@ -82,11 +157,26 @@ marked.setOptions({
   }
 });
 
+// 结构化思考步骤
+interface ThoughtStep {
+  type: 'thinking' | 'tool_start' | 'tool_result' | 'tool_error' | 'delegation_start' | 'delegation_end'
+  content: string
+  timestamp: number
+  agentName?: string
+  toolName?: string
+  toolInput?: string
+  toolOutput?: string
+  delegateTo?: string
+  task?: string
+  summary?: string
+}
+
 interface ChatMessage {
   content: string
   isUser: boolean
   timestamp: number
-  thought?: string
+  thought?: string              // 保留：纯文本累加，兼容旧数据
+  thoughtSteps?: ThoughtStep[]  // 新增：结构化步骤列表
   thoughtExpanded?: boolean
   finalAnswer?: string
   isError?: boolean
@@ -95,6 +185,13 @@ interface ChatMessage {
 interface AgentMessage {
   type: string
   content: string
+  agent_name?: string
+  tool_name?: string
+  tool_input?: string
+  tool_output?: string
+  delegate_to?: string
+  task?: string
+  summary?: string
 }
 
 interface ChatProps {
@@ -137,6 +234,7 @@ const isSending = ref(false)
 const currentResponseIndex = ref(-1)
 const currentThought = ref('')
 const currentAnswer = ref('')
+const currentThoughtSteps = ref<ThoughtStep[]>([])
 // 添加变量存储加载的对话历史
 const loadedConversations = ref<any[]>([])
 
@@ -279,6 +377,219 @@ const formatMessage = (content: string) => {
   }
 }
 
+// 确保已创建 AI 响应消息
+const ensureResponseMessage = () => {
+  if (currentResponseIndex.value === -1) {
+    messages.value.push({
+      content: '思考中...',
+      isUser: false,
+      timestamp: Date.now(),
+      thought: currentThought.value,
+      thoughtSteps: [...currentThoughtSteps.value],
+      thoughtExpanded: true
+    })
+    currentResponseIndex.value = messages.value.length - 1
+  }
+}
+
+// 更新当前消息的思考数据
+const updateCurrentMessage = () => {
+  if (currentResponseIndex.value >= 0 && currentResponseIndex.value < messages.value.length) {
+    const msg = messages.value[currentResponseIndex.value]
+    const currentExpanded = msg.thoughtExpanded !== false
+    msg.thought = currentThought.value
+    msg.thoughtSteps = [...currentThoughtSteps.value]
+    msg.thoughtExpanded = currentExpanded
+    msg.timestamp = Date.now()
+  }
+}
+
+// 处理结构化 Agent 事件，统一处理字符串解析和对象类型的事件
+const processAgentEvent = (agentMessage: AgentMessage): boolean => {
+  // 处理[DONE]类型的消息 - 表示对话结束
+  if (agentMessage.type === '[DONE]') {
+    console.log('[消息处理] - 检测到[DONE]消息，标记对话完成')
+    isSending.value = false
+
+    // 最终检查确保内容正确显示
+    if (currentResponseIndex.value !== -1 && currentResponseIndex.value < messages.value.length) {
+      if (!messages.value[currentResponseIndex.value].content ||
+          messages.value[currentResponseIndex.value].content === '思考中...' ||
+          messages.value[currentResponseIndex.value].content === '正在处理...') {
+        if (currentThought.value) {
+          messages.value[currentResponseIndex.value].content = '处理完成，但没有返回最终答案。'
+          messages.value[currentResponseIndex.value].timestamp = Date.now()
+        }
+      }
+
+      // 收起思考过程
+      if (messages.value[currentResponseIndex.value].thought ||
+          (messages.value[currentResponseIndex.value].thoughtSteps && messages.value[currentResponseIndex.value].thoughtSteps!.length > 0)) {
+        messages.value[currentResponseIndex.value].thoughtExpanded = false
+      }
+    }
+
+    // 重置状态
+    currentResponseIndex.value = -1
+    currentThought.value = ''
+    currentAnswer.value = ''
+    currentThoughtSteps.value = []
+    return true
+  }
+
+  // 处理 thought 类型（LLM 流式文本）
+  if (agentMessage.type === 'thought') {
+    if (agentMessage.content) {
+      currentThought.value += agentMessage.content
+      // 追加或更新最后一个 thinking 类型的步骤
+      const steps = currentThoughtSteps.value
+      if (steps.length > 0 && steps[steps.length - 1].type === 'thinking') {
+        steps[steps.length - 1].content += agentMessage.content
+        steps[steps.length - 1].timestamp = Date.now()
+      } else {
+        steps.push({
+          type: 'thinking',
+          content: agentMessage.content,
+          timestamp: Date.now(),
+          agentName: agentMessage.agent_name
+        })
+      }
+    }
+    ensureResponseMessage()
+    updateCurrentMessage()
+    return true
+  }
+
+  // 处理 tool_start 类型（工具调用开始）
+  if (agentMessage.type === 'tool_start') {
+    const text = agentMessage.content || `调用工具: ${agentMessage.tool_name}`
+    currentThought.value += '\n' + text + '\n'
+    currentThoughtSteps.value.push({
+      type: 'tool_start',
+      content: text,
+      timestamp: Date.now(),
+      agentName: agentMessage.agent_name,
+      toolName: agentMessage.tool_name,
+      toolInput: agentMessage.tool_input
+    })
+    ensureResponseMessage()
+    updateCurrentMessage()
+    return true
+  }
+
+  // 处理 tool_result 类型（工具返回结果）
+  if (agentMessage.type === 'tool_result') {
+    const text = agentMessage.content || `工具 ${agentMessage.tool_name} 返回结果`
+    currentThought.value += text + '\n'
+    currentThoughtSteps.value.push({
+      type: 'tool_result',
+      content: text,
+      timestamp: Date.now(),
+      agentName: agentMessage.agent_name,
+      toolName: agentMessage.tool_name,
+      toolOutput: agentMessage.tool_output || agentMessage.content
+    })
+    ensureResponseMessage()
+    updateCurrentMessage()
+    return true
+  }
+
+  // 处理 delegation_start 类型（委派开始）
+  if (agentMessage.type === 'delegation_start') {
+    const text = agentMessage.content || `委派任务给 ${agentMessage.delegate_to}`
+    currentThought.value += '\n' + text + '\n'
+    currentThoughtSteps.value.push({
+      type: 'delegation_start',
+      content: text,
+      timestamp: Date.now(),
+      delegateTo: agentMessage.delegate_to,
+      task: agentMessage.task
+    })
+    ensureResponseMessage()
+    updateCurrentMessage()
+    return true
+  }
+
+  // 处理 delegation_end 类型（委派完成）
+  if (agentMessage.type === 'delegation_end') {
+    const text = agentMessage.content || `${agentMessage.delegate_to} 完成任务`
+    currentThought.value += text + '\n'
+    currentThoughtSteps.value.push({
+      type: 'delegation_end',
+      content: text,
+      timestamp: Date.now(),
+      delegateTo: agentMessage.delegate_to,
+      summary: agentMessage.summary
+    })
+    ensureResponseMessage()
+    updateCurrentMessage()
+    return true
+  }
+
+  // 处理 final_answer 类型
+  if (agentMessage.type === 'final_answer') {
+    console.log('[消息处理] - 收到最终答案，内容:', agentMessage.content?.substring(0, 50))
+    currentAnswer.value = agentMessage.content || ''
+
+    if (currentResponseIndex.value !== -1 && currentResponseIndex.value < messages.value.length) {
+      messages.value[currentResponseIndex.value].content = currentAnswer.value
+      messages.value[currentResponseIndex.value].timestamp = Date.now()
+
+      if (messages.value[currentResponseIndex.value].thought ||
+          (messages.value[currentResponseIndex.value].thoughtSteps && messages.value[currentResponseIndex.value].thoughtSteps!.length > 0)) {
+        messages.value[currentResponseIndex.value].thoughtExpanded = false
+      }
+    } else {
+      messages.value.push({
+        content: currentAnswer.value,
+        isUser: false,
+        timestamp: Date.now()
+      })
+      currentResponseIndex.value = messages.value.length - 1
+    }
+    return true
+  }
+
+  // 处理 tool_error 类型
+  if (agentMessage.type === 'tool_error') {
+    console.log('[消息处理] - 收到工具错误消息:', agentMessage.content?.substring(0, 50))
+    const errorContent = agentMessage.content || '工具执行出错'
+
+    currentThoughtSteps.value.push({
+      type: 'tool_error',
+      content: errorContent,
+      timestamp: Date.now(),
+      agentName: agentMessage.agent_name,
+      toolName: agentMessage.tool_name
+    })
+
+    if (currentResponseIndex.value !== -1 && currentResponseIndex.value < messages.value.length) {
+      messages.value[currentResponseIndex.value].content = errorContent
+      messages.value[currentResponseIndex.value].isError = true
+      messages.value[currentResponseIndex.value].thoughtSteps = [...currentThoughtSteps.value]
+      messages.value[currentResponseIndex.value].timestamp = Date.now()
+    } else {
+      messages.value.push({
+        content: errorContent,
+        isUser: false,
+        isError: true,
+        thoughtSteps: [...currentThoughtSteps.value],
+        timestamp: Date.now()
+      })
+      currentResponseIndex.value = messages.value.length - 1
+    }
+    return true
+  }
+
+  // 忽略 system 类型
+  if (agentMessage.type === 'system') {
+    console.log('[消息处理] - 收到system消息，忽略渲染:', agentMessage.content?.substring(0, 50))
+    return true
+  }
+
+  return false
+}
+
 // 处理WebSocket消息
 const handleWebSocketMessage = (wsMessage: any) => {
   // 预处理输入的消息对象，确保它有一个标准的结构
@@ -319,138 +630,13 @@ const handleWebSocketMessage = (wsMessage: any) => {
           // 尝试解析为JSON对象
           agentMessage = JSON.parse(dataContent) as AgentMessage;
           console.log('[消息处理] - 成功解析JSON消息:', agentMessage.type);
-          
-          // 处理[DONE]类型的消息 - 表示对话结束
-          if (agentMessage.type === '[DONE]') {
-            console.log('[消息处理] - 检测到[DONE]消息，标记对话完成');
-            isSending.value = false;
-            
-            // 最终检查确保内容正确显示
-            if (currentResponseIndex.value !== -1 && currentResponseIndex.value < messages.value.length) {
-              console.log('[消息处理] - 完成对话，当前索引:', currentResponseIndex.value);
-              
-              // 如果没有最终答案但有思考过程，确保有内容显示
-              if (!messages.value[currentResponseIndex.value].content || 
-                  messages.value[currentResponseIndex.value].content === '思考中...' || 
-                  messages.value[currentResponseIndex.value].content === '正在处理...') {
-                if (currentThought.value) {
-                  messages.value[currentResponseIndex.value].content = '处理完成，但没有返回最终答案。';
-                  // 强制更新时间戳触发视图刷新
-                  messages.value[currentResponseIndex.value].timestamp = Date.now();
-                }
-              }
-              
-              // 收起思考过程
-              if (messages.value[currentResponseIndex.value].thought) {
-                messages.value[currentResponseIndex.value].thoughtExpanded = false;
-              }
-            }
-            
-            // 重置状态
-            currentResponseIndex.value = -1;
-            currentThought.value = '';
-            currentAnswer.value = '';
 
+          // 统一使用 processAgentEvent 处理所有事件类型
+          if (processAgentEvent(agentMessage)) {
             messageProcessed = true;
-
-            return; // 提前返回，避免进一步处理
-          }
-          
-          // 处理thought类型消息 - 思考过程
-          if (agentMessage.type === 'thought') {
-            console.log('[消息处理] - 收到思考过程，内容:', agentMessage.content?.substring(0, 50));
-
-            // 累加思考内容
-            if (agentMessage.content) {
-              currentThought.value += agentMessage.content;
+            if (agentMessage.type === '[DONE]') {
+              return; // [DONE] 提前返回
             }
-            
-            // 如果尚未创建AI回复，则创建一个
-            if (currentResponseIndex.value === -1) {
-              console.log('[消息处理] - 创建新的AI响应消息');
-              messages.value.push({
-                content: '思考中...',
-                isUser: false,
-                timestamp: Date.now(),
-                thought: currentThought.value,
-                thoughtExpanded: true // 默认展开思考过程
-              });
-              currentResponseIndex.value = messages.value.length - 1;
-            } else if (currentResponseIndex.value < messages.value.length) {
-              // 更新已有消息的思考过程
-              console.log('[消息处理] - 更新已有消息的思考过程');
-              // 保存当前的展开状态
-              const currentExpanded = messages.value[currentResponseIndex.value].thoughtExpanded !== false;
-              messages.value[currentResponseIndex.value].thought = currentThought.value;
-              // 保留之前的展开状态，如果未设置则默认为展开
-              messages.value[currentResponseIndex.value].thoughtExpanded = currentExpanded;
-              // 强制更新时间戳
-              messages.value[currentResponseIndex.value].timestamp = Date.now();
-            }
-            
-            messageProcessed = true;
-          }
-          
-          // 处理final_answer类型消息 - 最终答案
-          else if (agentMessage.type === 'final_answer') {
-            console.log('[消息处理] - 收到最终答案，内容:', agentMessage.content?.substring(0, 50));
-            currentAnswer.value = agentMessage.content || '';
-            
-            // 更新消息的内容为最终答案
-            if (currentResponseIndex.value !== -1 && currentResponseIndex.value < messages.value.length) {
-              console.log('[消息处理] - 更新已有消息为最终答案, index:', currentResponseIndex.value);
-              messages.value[currentResponseIndex.value].content = currentAnswer.value;
-              // 强制更新时间戳
-              messages.value[currentResponseIndex.value].timestamp = Date.now();
-              
-              // 最终答案到达后，折叠思考过程
-              if (messages.value[currentResponseIndex.value].thought) {
-                messages.value[currentResponseIndex.value].thoughtExpanded = false;
-              }
-            } else {
-              console.log('[消息处理] - 没有找到之前的AI消息，创建新的最终答案消息');
-              // 如果没有找到之前的消息，创建一个新的
-              messages.value.push({
-                content: currentAnswer.value,
-                isUser: false,
-                timestamp: Date.now()
-              });
-              currentResponseIndex.value = messages.value.length - 1;
-            }
-            
-            messageProcessed = true;
-          }
-          // 处理tool_error类型消息 - 工具执行错误，红色显示
-          else if (agentMessage.type === 'tool_error') {
-            console.log('[消息处理] - 收到工具错误消息(对象)，内容:', agentMessage.content?.substring(0, 50));
-            const errorContent = agentMessage.content || '工具执行出错';
-            
-            // 更新或创建一条包含错误信息的消息
-            if (currentResponseIndex.value !== -1 && currentResponseIndex.value < messages.value.length) {
-              console.log('[消息处理] - 更新已有消息为工具错误, index:', currentResponseIndex.value);
-              messages.value[currentResponseIndex.value].content = errorContent;
-              messages.value[currentResponseIndex.value].isError = true; // 添加错误标记
-              // 强制更新时间戳
-              messages.value[currentResponseIndex.value].timestamp = Date.now();
-            } else {
-              console.log('[消息处理] - 创建新的工具错误消息');
-              // 创建一条新的错误消息
-              messages.value.push({
-                content: errorContent,
-                isUser: false,
-                isError: true, // 添加错误标记
-                timestamp: Date.now()
-              });
-              currentResponseIndex.value = messages.value.length - 1;
-            }
-            
-            messageProcessed = true;
-          }
-          // 忽略system类型的消息
-          else if (agentMessage.type === 'system') {
-            console.log('[消息处理] - 收到system消息，忽略渲染:', agentMessage.content?.substring(0, 50));
-            // 不渲染系统消息，但标记为已处理
-            messageProcessed = true;
           }
         } catch (parseError) {
           console.error('[消息处理] - JSON解析失败:', parseError, '原始消息:', dataContent);
@@ -461,6 +647,7 @@ const handleWebSocketMessage = (wsMessage: any) => {
             currentResponseIndex.value = -1;
             currentThought.value = '';
             currentAnswer.value = '';
+            currentThoughtSteps.value = [];
             messageProcessed = true;
             return;
           }
@@ -470,7 +657,7 @@ const handleWebSocketMessage = (wsMessage: any) => {
             type: 'final_answer',
             content: dataContent
           };
-          
+
           // 处理普通文本消息
           if (currentResponseIndex.value === -1) {
             messages.value.push({
@@ -483,72 +670,16 @@ const handleWebSocketMessage = (wsMessage: any) => {
             messages.value[currentResponseIndex.value].content = dataContent;
             messages.value[currentResponseIndex.value].timestamp = Date.now();
           }
-          
+
           messageProcessed = true;
         }
       } else if (typeof dataContent === 'object' && dataContent !== null) {
         // 如果data已经是对象，直接处理
         agentMessage = dataContent as AgentMessage;
         console.log('[消息处理] - 接收到对象类型data:', agentMessage.type);
-        
-        // 处理不同类型的消息
-        if (agentMessage.type === 'thought') {
-          // 思考过程消息
-            if (agentMessage.content) {
-              currentThought.value += agentMessage.content;
-            }
 
-            // 更新或创建消息
-            if (currentResponseIndex.value === -1) {
-              messages.value.push({
-                content: '思考中...',
-                isUser: false,
-                timestamp: Date.now(),
-                thought: currentThought.value,
-                thoughtExpanded: true
-              });
-              currentResponseIndex.value = messages.value.length - 1;
-            } else {
-              const currentExpanded = messages.value[currentResponseIndex.value].thoughtExpanded !== false;
-              messages.value[currentResponseIndex.value].thought = currentThought.value;
-              messages.value[currentResponseIndex.value].thoughtExpanded = currentExpanded;
-              messages.value[currentResponseIndex.value].timestamp = Date.now();
-            }
-
-            messageProcessed = true;
-        } else if (agentMessage.type === 'final_answer') {
-          // 最终答案
-          currentAnswer.value = agentMessage.content || '';
-          
-          if (currentResponseIndex.value !== -1) {
-            messages.value[currentResponseIndex.value].content = currentAnswer.value;
-            messages.value[currentResponseIndex.value].timestamp = Date.now();
-            
-            if (messages.value[currentResponseIndex.value].thought) {
-              messages.value[currentResponseIndex.value].thoughtExpanded = false;
-            }
-          } else {
-            messages.value.push({
-              content: currentAnswer.value,
-              isUser: false,
-              timestamp: Date.now()
-            });
-            currentResponseIndex.value = messages.value.length - 1;
-          }
-          
-          messageProcessed = true;
-        } else if (agentMessage.type === '[DONE]') {
-          // 完成消息
-          isSending.value = false;
-          currentResponseIndex.value = -1;
-          currentThought.value = '';
-          currentAnswer.value = '';
-          messageProcessed = true;
-        }
-        // 忽略system类型的消息
-        else if (agentMessage.type === 'system') {
-          console.log('[消息处理] - 收到system消息，忽略渲染:', agentMessage.content?.substring(0, 50));
-          // 不渲染系统消息，但标记为已处理
+        // 统一使用 processAgentEvent 处理所有事件类型
+        if (processAgentEvent(agentMessage)) {
           messageProcessed = true;
         }
       } else {
@@ -607,6 +738,7 @@ const handleSend = async () => {
     currentResponseIndex.value = -1
     currentThought.value = ''
     currentAnswer.value = ''
+    currentThoughtSteps.value = []
     console.log('[Chat.handleSend] - 已重置响应状态')
 
     // 使用计算的localProjectId，确保类型正确
@@ -1112,7 +1244,9 @@ const resetSendingState = () => {
                     currentThought.value = ''
                     currentAnswer.value = ''
   }
-  
+
+  currentThoughtSteps.value = []
+
 }
 
 // 检查并修复卡住的发送状态
@@ -1310,6 +1444,128 @@ const handleAgentComplete = () => {
 .thought-content :deep(p) {
   margin-top: 0;  /* 移除上边距 */
   margin-bottom: 8px;
+}
+
+/* 结构化思考步骤 */
+.thought-step {
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+.thought-step:last-child {
+  border-bottom: none;
+}
+
+.step-thinking {
+  color: #8c8c8c;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.step-thinking :deep(p) {
+  margin: 0 0 4px 0;
+}
+
+.step-agent-badge {
+  display: inline-block;
+  background-color: #e8eaf6;
+  color: #3949ab;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-right: 6px;
+  font-weight: 500;
+}
+
+.step-tool-start,
+.step-tool-result,
+.step-tool-error,
+.step-delegation-start,
+.step-delegation-end {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.step-icon-wrap {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.step-icon-text {
+  font-size: 14px;
+}
+
+.step-body {
+  flex: 1;
+  font-size: 13px;
+  color: #606266;
+  min-width: 0;
+}
+
+.step-label {
+  font-weight: 500;
+  margin-right: 4px;
+}
+
+.tool-name-tag, .agent-name-tag {
+  background-color: #f0f0f0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #333;
+}
+
+.tool-detail-block {
+  margin-top: 4px;
+}
+
+.tool-detail-block details {
+  font-size: 12px;
+  color: #999;
+}
+
+.tool-detail-block summary {
+  cursor: pointer;
+  color: #409EFF;
+  font-size: 12px;
+  user-select: none;
+}
+
+.tool-pre {
+  background-color: #f8f9fa;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  overflow-x: auto;
+  max-height: 200px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 4px 0 0 0;
+}
+
+.step-tool-error .step-body {
+  color: #f56c6c;
+}
+.error-detail {
+  background-color: rgba(245, 108, 108, 0.1);
+  padding: 6px 8px;
+  border-radius: 4px;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.step-delegation-start .step-body {
+  color: #e6a23c;
+}
+
+.step-delegation-end .step-body {
+  color: #67c23a;
+}
+
+.delegation-task {
+  font-style: italic;
+  color: #909399;
+  font-size: 12px;
+  margin-top: 2px;
 }
 
 .message-content :deep(.error-block) {

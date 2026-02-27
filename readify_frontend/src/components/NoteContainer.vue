@@ -242,107 +242,93 @@ const handleAgentMessage = (message: string) => {
   try {
     // 尝试解析消息为JSON
     const parsedMessage = JSON.parse(message);
-    
+
     // 处理[DONE]类型的消息
     if (parsedMessage.type === '[DONE]') {
       // 思维导图生成完成，更改抽屉状态为已完成
       isThinkingComplete.value = true;
-      
+
       // 延迟最小化抽屉
       setTimeout(() => {
         isMinimized.value = true;
-        
+
         // 发送刷新思维导图的事件给父组件
         emit('refresh-mindmap');
       }, 1500);
-      
+
       return;
     }
-    
-    // 检查各种可能的消息格式
-    if (parsedMessage.data) {
-      // 情况1: data是对象并包含content字段
-      if (typeof parsedMessage.data === 'object' && parsedMessage.data.content) {
-        // 如果content为空字符串，则忽略这条消息
-        if (parsedMessage.data.content.trim() === '') {
-          return;
-        }
-        
-        const content = parsedMessage.data.content;
-        const messageType = parsedMessage.type || parsedMessage.data.type;
-        
-        // 根据类型处理渲染样式
-        if (messageType === 'error') {
-          // 错误类型消息，添加红色样式
-          thinkingContent.value += `<div class="error-message">${content}</div>`;
-        } else {
-          // 普通消息，直接添加内容
-          thinkingContent.value += content;
-        }
-      } 
-      // 情况2: data本身就是字符串
-      else if (typeof parsedMessage.data === 'string') {
-        // 如果data为空字符串，则忽略这条消息
-        if (parsedMessage.data.trim() === '') {
-          return;
-        }
-        
-        const messageType = parsedMessage.type;
-        
-        if (messageType === 'error') {
-          thinkingContent.value += `<div class="error-message">${parsedMessage.data}</div>`;
-        } else {
-          thinkingContent.value += parsedMessage.data;
-        }
+
+    // 提取内容和类型（兼容多种消息格式）
+    let msgType = ''
+    let content = ''
+    let meta: any = {}
+
+    if (parsedMessage.data && typeof parsedMessage.data === 'object' && parsedMessage.data.content) {
+      msgType = parsedMessage.data.type || parsedMessage.type || ''
+      content = parsedMessage.data.content || ''
+      meta = parsedMessage.data
+    } else if (parsedMessage.data && typeof parsedMessage.data === 'string') {
+      try {
+        const inner = JSON.parse(parsedMessage.data)
+        msgType = inner.type || ''
+        content = inner.content || ''
+        meta = inner
+      } catch {
+        content = parsedMessage.data
+        msgType = parsedMessage.type || 'thought'
       }
-      // 情况3: data是对象但没有content字段
-      else {
-        // 尝试将整个data对象转为字符串
-        try {
-          const dataStr = typeof parsedMessage.data === 'object' 
-            ? JSON.stringify(parsedMessage.data, null, 2)
-            : String(parsedMessage.data);
-            
-          // 如果转换后的字符串为空，则忽略这条消息
-          if (dataStr.trim() === '') {
-            return;
-          }
-            
-          if (parsedMessage.type === 'error') {
-            thinkingContent.value += `<div class="error-message">${dataStr}</div>`;
-          } else {
-            thinkingContent.value += dataStr;
-          }
-        } catch (e) {
-          // 只有在转换出错时才直接输出原始消息
-          thinkingContent.value += message;
-        }
+    } else if (parsedMessage.content) {
+      msgType = parsedMessage.type || ''
+      content = parsedMessage.content || ''
+      meta = parsedMessage
+    } else {
+      // 其他格式，直接输出原始消息
+      if (message.trim() !== '') {
+        thinkingContent.value += message;
       }
-    } 
-    // 处理思考类型消息，但content为空的情况
-    else if (parsedMessage.type === 'thought' && (!parsedMessage.content || parsedMessage.content.trim() === '')) {
-      // 忽略空content的thought类型消息
       return;
     }
-    // 情况4: 消息本身是一个对象但没有data字段
-    else if (parsedMessage.content) {
-      // 如果content为空字符串，则忽略这条消息
-      if (parsedMessage.content.trim() === '') {
-        return;
-      }
-      
-      if (parsedMessage.type === 'error') {
-        thinkingContent.value += `<div class="error-message">${parsedMessage.content}</div>`;
-      } else {
-        thinkingContent.value += parsedMessage.content;
-      }
-    }
-    // 情况5: 其他格式，直接输出原始消息（除非为空）
-    else if (message.trim() !== '') {
-      thinkingContent.value += message;
+
+    if (!content || content.trim() === '') return;
+
+    // 根据事件类型生成不同的 HTML 片段
+    if (msgType === 'tool_start') {
+      thinkingContent.value += `<div class="drawer-step drawer-tool-start">
+        <span class="drawer-step-icon">🔧</span>
+        <span class="drawer-step-label">调用工具</span>
+        <code class="drawer-tag">${meta.tool_name || ''}</code>
+        ${meta.tool_input ? `<details class="drawer-details"><summary>查看输入</summary><pre class="drawer-pre">${meta.tool_input}</pre></details>` : ''}
+      </div>\n`;
+    } else if (msgType === 'tool_result') {
+      thinkingContent.value += `<div class="drawer-step drawer-tool-result">
+        <span class="drawer-step-icon">✅</span>
+        <span class="drawer-step-label">工具结果</span>
+        <code class="drawer-tag">${meta.tool_name || ''}</code>
+        <details class="drawer-details"><summary>查看输出</summary><pre class="drawer-pre">${content}</pre></details>
+      </div>\n`;
+    } else if (msgType === 'delegation_start') {
+      thinkingContent.value += `<div class="drawer-step drawer-delegation-start">
+        <span class="drawer-step-icon">🚀</span>
+        <span>委派任务给 <code class="drawer-tag">${meta.delegate_to || ''}</code></span>
+        ${meta.task ? `<div class="drawer-task">${meta.task}</div>` : ''}
+      </div>\n`;
+    } else if (msgType === 'delegation_end') {
+      thinkingContent.value += `<div class="drawer-step drawer-delegation-end">
+        <span class="drawer-step-icon">✅</span>
+        <span><code class="drawer-tag">${meta.delegate_to || ''}</code> 完成任务</span>
+      </div>\n`;
+    } else if (msgType === 'tool_error' || msgType === 'error') {
+      thinkingContent.value += `<div class="drawer-step drawer-tool-error">
+        <span class="drawer-step-icon">❌</span>
+        <span>${content}</span>
+      </div>\n`;
+    } else {
+      // thought 或未知类型：保持原始行为
+      thinkingContent.value += content;
     }
   } catch (e) {
-    // 如果解析JSON失败，按原方式添加消息（除非为空）
+    // 如果解析JSON失败，按原方式添加消息
     if (message.trim() !== '') {
       thinkingContent.value += message;
     }
@@ -1078,6 +1064,70 @@ const BrainProcess = {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* 结构化思考步骤（抽屉内） */
+.drawer-step {
+  padding: 6px 0;
+  font-size: 13px;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
+}
+.drawer-step:last-child {
+  border-bottom: none;
+}
+.drawer-step-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.drawer-step-label {
+  font-weight: 500;
+  margin-right: 4px;
+}
+.drawer-tag {
+  background-color: #f0f0f0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #333;
+}
+.drawer-tool-error {
+  color: #f56c6c;
+}
+.drawer-delegation-start {
+  color: #e6a23c;
+}
+.drawer-delegation-end {
+  color: #67c23a;
+}
+.drawer-task {
+  font-style: italic;
+  color: #909399;
+  font-size: 12px;
+  margin-top: 2px;
+}
+.drawer-details {
+  margin-top: 4px;
+  width: 100%;
+}
+.drawer-details summary {
+  cursor: pointer;
+  color: #409EFF;
+  font-size: 12px;
+  user-select: none;
+}
+.drawer-pre {
+  background-color: #f8f9fa;
+  padding: 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  max-height: 200px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  margin: 4px 0 0 0;
 }
 </style>
 

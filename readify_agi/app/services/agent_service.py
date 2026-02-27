@@ -623,11 +623,12 @@ class AgentService:
         await callback({
             'type': 'thought',
             'content': content,
+            'agent_name': self.agent_name,
             'project_id': project_id
         })
         # 收集思考内容
         self.all_thoughts.append(content)
-    
+
     async def _handle_tool_start(self, event: Dict, callback: Callable, project_id: int) -> None:
         """
         处理工具开始事件，子类可以重写以添加自定义逻辑
@@ -642,7 +643,7 @@ class AgentService:
     async def _handle_tool_end(self, event: Dict, callback: Callable, project_id: int) -> None:
         """
         处理工具结束事件，子类可以重写以添加自定义逻辑
-        
+
         Args:
             event: 事件数据
             callback: 回调函数
@@ -650,20 +651,24 @@ class AgentService:
         """
         tool_name = event["name"]
         tool_output = event["data"]["output"]
-        # 发送工具输出
-        content = f"工具[{tool_name}]输出: {tool_output}\n"
+        # 截断过长输出用于前端展示
+        display_output = str(tool_output)[:1000] if tool_output else ""
+        # 发送结构化工具结果事件
         await callback({
-            'type': 'thought',
-            'content': content,
+            'type': 'tool_result',
+            'content': display_output,
+            'tool_name': tool_name,
+            'tool_output': display_output,
+            'agent_name': self.agent_name,
             'project_id': project_id
         })
-        # 收集工具输出
-        self.all_thoughts.append(content)
+        # 收集工具输出（完整文本用于DB持久化）
+        self.all_thoughts.append(f"工具[{tool_name}]输出: {tool_output}\n")
     
     async def _handle_tool_error(self, event: Dict, callback: Callable, project_id: int) -> None:
         """
         处理工具错误事件，子类可以重写以添加自定义逻辑
-        
+
         Args:
             event: 事件数据
             callback: 回调函数
@@ -680,6 +685,7 @@ class AgentService:
             'tool_name': tool_name,
             'input': tool_input,
             'error': error_message,
+            'agent_name': self.agent_name,
             'project_id': project_id
         })
         # 收集错误信息
@@ -688,7 +694,7 @@ class AgentService:
     async def _handle_agent_action(self, event: Dict, callback: Callable, project_id: int) -> None:
         """
         处理智能体动作事件，子类可以重写以添加自定义逻辑
-        
+
         Args:
             event: 事件数据
             callback: 回调函数
@@ -697,11 +703,17 @@ class AgentService:
         action = event["data"].get("action", {})
         action_input = action.get("action_input", "")
         tool_name = action.get("tool", "未知工具")
+        # 发送结构化工具调用事件
         await callback({
-            'type': 'thought',
-            'content': f'智能体计划使用工具: {tool_name}，输入: {action_input}',
+            'type': 'tool_start',
+            'content': f'智能体计划使用工具: {tool_name}',
+            'tool_name': tool_name,
+            'tool_input': str(action_input)[:500],
+            'agent_name': self.agent_name,
             'project_id': project_id
         })
+        # 保持纯文本累加用于DB持久化
+        self.all_thoughts.append(f"智能体计划使用工具: {tool_name}，输入: {action_input}\n")
     
     async def _handle_error(self, e: Exception, callback: Callable, project_id: int, query: str) -> None:
         """

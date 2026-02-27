@@ -165,23 +165,47 @@ class CoordinatorAgentService(AgentService):
                     "completed": False
                 })
 
+                # 获取主回调，用于实时转发子Agent事件
+                main_callback = self._current_callback
+
+                # 发送 delegation_start 事件
+                if main_callback:
+                    await main_callback({
+                        'type': 'delegation_start',
+                        'content': f'正在将任务委派给 {agent_name}...',
+                        'delegate_to': agent_name,
+                        'task': task[:200],
+                        'project_id': self.project_id
+                    })
+                    self.all_thoughts.append(f"\n--- 委派任务给 {agent_name}: {task} ---\n")
+
+                result = {"output": "子智能体未返回有效结果"}
+
                 if hasattr(agent, 'generate_stream_response'):
                     collected_output = []
                     sub_agent_thoughts = []
 
-                    async def collect_output_callback(data):
+                    async def forward_callback(data):
+                        """转发子Agent事件到主SSE流，同时收集结果"""
                         content_type = data.get('type', '')
                         content = data.get('content', '')
 
+                        # 收集子Agent思考
                         if content_type == "thought":
                             sub_agent_thoughts.append(content)
 
+                        # 收集最终答案（不转发，由Coordinator自己生成最终答案）
                         if content_type == 'final_answer' and content:
                             collected_output.append(content)
+                            return
+
+                        # 实时转发结构化事件到前端，排除 thought（避免重复）及 final_answer/[DONE]/system
+                        if main_callback and content_type not in ('final_answer', '[DONE]', 'system', 'thought'):
+                            await main_callback(data)
 
                     await agent.generate_stream_response(
                         query=task,
-                        callback=collect_output_callback,
+                        callback=forward_callback,
                         should_save_thinking=False
                     )
 
@@ -191,6 +215,18 @@ class CoordinatorAgentService(AgentService):
 
                     result_output = "\n".join(collected_output) if collected_output else "子智能体未返回有效结果"
                     result = {"output": result_output}
+
+                # 发送 delegation_end 事件
+                if main_callback:
+                    summary = result.get("output", "")[:200]
+                    await main_callback({
+                        'type': 'delegation_end',
+                        'content': f'{agent_name} 已完成任务',
+                        'delegate_to': agent_name,
+                        'summary': summary,
+                        'project_id': self.project_id
+                    })
+                    self.all_thoughts.append(f"\n--- {agent_name} 完成任务 ---\n")
 
                 task_index = len(self.last_task_status["task_history"]) - 1
                 self.last_task_status["task_history"][task_index]["completed"] = True
@@ -284,14 +320,7 @@ class CoordinatorAgentService(AgentService):
         """
         tool_name = event.get("name", "")
         ignore_tools = ["get_task_status", "execute_multi_agent_workflow", "delegate_task"]
-        if tool_name == "delegate_task":
-            content = "\n委派任务已处理完成....\n"
-            await callback({
-                'type': 'thought',
-                'content': content,
-                'project_id': self.project_id
-            })
-            self.all_thoughts.append(content)
+        # delegate_task 的 delegation_end 已在工具内部发送，不再重复
         if tool_name in ignore_tools:
             return
 
