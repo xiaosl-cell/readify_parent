@@ -60,11 +60,19 @@ def _load_nacos_config() -> Dict[str, Any]:
             logger.error("Failed to parse Nacos config %s/%s: %s", group, data_id, exc)
             return {}
 
-    try:
-        return asyncio.run(_pull())
-    except Exception as exc:  # pragma: no cover
-        logger.error("Failed to fetch Nacos config %s/%s: %s", group, data_id, exc)
-        return {}
+    for attempt in range(1, 4):
+        try:
+            result = asyncio.run(_pull())
+            if result:
+                return result
+            logger.warning("Nacos config %s/%s returned empty, attempt %d/3", group, data_id, attempt)
+        except Exception as exc:  # pragma: no cover
+            logger.warning("Failed to fetch Nacos config %s/%s (attempt %d/3): %s", group, data_id, attempt, exc)
+        if attempt < 3:
+            import time
+            time.sleep(2)
+    logger.error("All 3 attempts to fetch Nacos config %s/%s failed", group, data_id)
+    return {}
 
 
 class Settings(BaseSettings):

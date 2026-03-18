@@ -42,6 +42,7 @@ services:
       - OCR_USE_DOC_ORIENTATION_CLASSIFY=false
       - OCR_USE_DOC_UNWARPING=false
       - OCR_USE_TEXTLINE_ORIENTATION=false
+      - FLAGS_use_mkldnn=0
     ports:
       - "8090:8090"
     restart: always

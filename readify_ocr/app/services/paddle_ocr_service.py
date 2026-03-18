@@ -1,7 +1,11 @@
 import asyncio
+import os
 import tempfile
 from pathlib import Path
 from typing import Any, List
+
+# 禁用 OneDNN（MKL-DNN），避免 CPU 推理时 Tensor 内存分配错误
+os.environ.setdefault("FLAGS_use_mkldnn", "0")
 
 from app.core.config import settings
 
