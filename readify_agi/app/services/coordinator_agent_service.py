@@ -1,14 +1,33 @@
 import json
 import logging
 
-from typing import Dict, Any, Callable, List, Optional
+from typing import Dict, Any, Callable, List, Optional, Literal, Tuple
 
 from langchain_core.tools import BaseTool, tool
+from pydantic import BaseModel, Field
 
 from app.config.agent_names import AgentNames
 from app.services.agent_service import AgentService
 
 logger = logging.getLogger(__name__)
+
+
+class DelegateTaskInput(BaseModel):
+    """delegate_task 的结构化参数定义。"""
+
+    agent_name: Optional[str] = Field(
+        default=None,
+        description="要委派的专业智能体名称，例如 QUESTIONER 或 NOTE_AGENT。优先使用 list_available_agents 返回的名称。",
+    )
+    task_type: Optional[Literal["ask", "note"]] = Field(
+        default=None,
+        description="任务类型。可选值为 ask 或 note，可作为 agent_name 的辅助或回退选择。",
+    )
+    task: str = Field(
+        ...,
+        min_length=1,
+        description="要执行的具体任务描述，必须包含完整上下文，不要传 JSON 字符串。",
+    )
 
 
 class CoordinatorAgentService(AgentService):
@@ -93,6 +112,26 @@ class CoordinatorAgentService(AgentService):
 
         return False
 
+    def _resolve_agent_name(self, agent_name: Optional[str], task_type: Optional[str]) -> Tuple[Optional[str], Optional[AgentService]]:
+        """根据 agent_name 或 task_type 解析目标智能体。"""
+        if agent_name:
+            for key, value in self.specialized_agents.items():
+                key_str = str(key) if isinstance(key, tuple) else key
+                if key_str == agent_name or key == agent_name:
+                    return key_str, value
+
+        task_type_to_agent = {
+            "ask": AgentNames.QUESTIONER,
+            "note": AgentNames.NOTE_AGENT,
+        }
+        resolved_name = task_type_to_agent.get(task_type or "")
+        if resolved_name:
+            agent = self.specialized_agents.get(resolved_name)
+            if agent:
+                return resolved_name, agent
+
+        return None, None
+
     async def _load_tools(self) -> List[BaseTool]:
         """
         加载协调Agent专用工具
@@ -121,63 +160,48 @@ class CoordinatorAgentService(AgentService):
 
             return "可用的专业智能体:\n" + "\n\n".join(agent_info)
 
-        @tool
-        async def delegate_task(input_str: str) -> str:
+        @tool(args_schema=DelegateTaskInput)
+        async def delegate_task(
+            task: str,
+            agent_name: Optional[str] = None,
+            task_type: Optional[Literal["ask", "note"]] = None,
+        ) -> str:
             """
-            将任务委派给专业智能体，输出参数为纯json字符串，不需要被markdown格式包裹
-
-            args：
-            {
-                "agent_name": "要使用的智能体名称",
-                "task_type": 任务类型 ask/note
-                "task": "要执行的具体任务描述",
-            }
-
+            将任务委派给专业智能体。使用真正的结构化字段传参，不要再传 JSON 字符串。
 
             Returns:
                 str: 专业智能体的响应结果
             """
             try:
-                params = json.loads(input_str) if isinstance(input_str, str) else input_str
+                resolved_agent_name, agent = self._resolve_agent_name(agent_name=agent_name, task_type=task_type)
 
-                agent_name = params.get("agent_name")
-                task = params.get("task")
-
-                if not agent_name:
-                    return "错误: 未指定智能体名称"
-                if not task:
-                    return "错误: 未提供任务描述"
-
-                agent = None
-                for key, value in self.specialized_agents.items():
-                    key_str = str(key) if isinstance(key, tuple) else key
-                    if key_str == agent_name or key == agent_name:
-                        agent = value
-                        break
-
+                if not resolved_agent_name:
+                    if agent_name:
+                        return f"错误: 未找到名为 '{agent_name}' 的智能体"
+                    return "错误: 未指定可解析的智能体，请提供 agent_name 或可用的 task_type"
                 if not agent:
-                    return f"错误: 未找到名为 '{agent_name}' 的智能体"
+                    return f"错误: 智能体 '{resolved_agent_name}' 当前不可用"
 
-                self.last_task_status["current_agent"] = agent_name
+                self.last_task_status["current_agent"] = resolved_agent_name
                 self.last_task_status["task_history"].append({
-                    "agent": agent_name,
+                    "agent": resolved_agent_name,
+                    "task_type": task_type,
                     "task": task,
                     "completed": False
                 })
 
-                # 获取主回调，用于实时转发子Agent事件
                 main_callback = self._current_callback
 
-                # 发送 delegation_start 事件
                 if main_callback:
                     await main_callback({
                         'type': 'delegation_start',
-                        'content': f'正在将任务委派给 {agent_name}...',
-                        'delegate_to': agent_name,
+                        'content': f'正在将任务委派给 {resolved_agent_name}...',
+                        'delegate_to': resolved_agent_name,
+                        'task_type': task_type,
                         'task': task[:200],
                         'project_id': self.project_id
                     })
-                    self.all_thoughts.append(f"\n--- 委派任务给 {agent_name}: {task} ---\n")
+                    self.all_thoughts.append(f"\n--- 委派任务给 {resolved_agent_name}: {task} ---\n")
 
                 result = {"output": "子智能体未返回有效结果"}
 
@@ -190,16 +214,13 @@ class CoordinatorAgentService(AgentService):
                         content_type = data.get('type', '')
                         content = data.get('content', '')
 
-                        # 收集子Agent思考
                         if content_type == "thought":
                             sub_agent_thoughts.append(content)
 
-                        # 收集最终答案（不转发，由Coordinator自己生成最终答案）
                         if content_type == 'final_answer' and content:
                             collected_output.append(content)
                             return
 
-                        # 实时转发结构化事件到前端，排除 thought（避免重复）及 final_answer/[DONE]/system
                         if main_callback and content_type not in ('final_answer', '[DONE]', 'system', 'thought'):
                             await main_callback(data)
 
@@ -216,29 +237,28 @@ class CoordinatorAgentService(AgentService):
                     result_output = "\n".join(collected_output) if collected_output else "子智能体未返回有效结果"
                     result = {"output": result_output}
 
-                # 发送 delegation_end 事件
                 if main_callback:
                     summary = result.get("output", "")[:200]
                     await main_callback({
                         'type': 'delegation_end',
-                        'content': f'{agent_name} 已完成任务',
-                        'delegate_to': agent_name,
+                        'content': f'{resolved_agent_name} 已完成任务',
+                        'delegate_to': resolved_agent_name,
+                        'task_type': task_type,
                         'summary': summary,
                         'project_id': self.project_id
                     })
-                    self.all_thoughts.append(f"\n--- {agent_name} 完成任务 ---\n")
+                    self.all_thoughts.append(f"\n--- {resolved_agent_name} 完成任务 ---\n")
 
                 task_index = len(self.last_task_status["task_history"]) - 1
                 self.last_task_status["task_history"][task_index]["completed"] = True
                 self.last_task_status["task_history"][task_index]["result"] = result.get("output", "未返回结果")
                 return json.dumps({
-                    "agent": agent_name,
+                    "agent": resolved_agent_name,
+                    "task_type": task_type,
                     "task": task,
                     "result": result.get("output", "未返回结果")
                 }, ensure_ascii=False)
 
-            except json.JSONDecodeError:
-                return "错误: 无效的JSON格式参数"
             except KeyError as e:
                 return f"委派任务时缺少必要参数: {str(e)}"
             except Exception as e:
@@ -275,9 +295,9 @@ class CoordinatorAgentService(AgentService):
                 try:
                     await agent.initialize()
                     logger.info("已初始化专业智能体: %s", agent_name)
-                except Exception as e:
+                except Exception:
                     logger.exception("初始化专业智能体 %s 失败", agent_name)
-        except Exception as e:
+        except Exception:
             logger.exception("初始化专业智能体时发生错误")
 
     async def _before_generation(self, query: str, callback: Callable) -> Dict[str, Any]:
@@ -293,6 +313,7 @@ class CoordinatorAgentService(AgentService):
         """
         context = await super()._before_generation(query, callback)
         context["task_type"] = self.task_type
+        context["available_tools"] = self._render_tools_for_prompt()
 
         available_agents = "无"
         if self.specialized_agents:
@@ -320,8 +341,15 @@ class CoordinatorAgentService(AgentService):
         """
         tool_name = event.get("name", "")
         ignore_tools = ["get_task_status", "execute_multi_agent_workflow", "delegate_task"]
-        # delegate_task 的 delegation_end 已在工具内部发送，不再重复
         if tool_name in ignore_tools:
             return
 
         await super()._handle_tool_end(event, callback, project_id)
+
+    async def aclose(self) -> None:
+        """关闭协调器及其已注册子智能体持有的会话。"""
+        await super().aclose()
+        for agent in self.specialized_agents.values():
+            close_method = getattr(agent, "aclose", None)
+            if close_method is not None:
+                await close_method()

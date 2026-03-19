@@ -50,9 +50,9 @@ class FileVectorizeService:
                     file_id, user_id, project_id, visibility)
 
         try:
-            async with async_session_maker():
-                file_repo = FileRepository()
-                doc_repo = DocumentRepository()
+            async with async_session_maker() as db:
+                file_repo = FileRepository(db)
+                doc_repo = DocumentRepository(db)
 
                 logger.info("正在获取文件信息...")
                 file = await file_repo.get_file_by_id(file_id)

@@ -15,5 +15,5 @@ RUN uv pip install --system --no-cache -r requirements.txt
 COPY . .
 RUN mkdir -p app/static
 
-EXPOSE 8081
+EXPOSE 8090
 CMD ["python", "main.py"]

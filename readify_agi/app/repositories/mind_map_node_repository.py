@@ -1,7 +1,7 @@
 from typing import Optional, List, Dict
 import time
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.sql import and_
 
 from app.models.mind_map_node import MindMapNodeDB, MindMapNodeTreeResponse, MindMapNodeCreate
@@ -76,6 +76,91 @@ class MindMapNodeRepository(BaseRepository):
             ).order_by(MindMapNodeDB.level, MindMapNodeDB.sequence)
             result = await db.execute(query)
             return result.scalars().all()
+        finally:
+            await self._cleanup_session()
+
+    async def update_node_content(self, node_id: int, content: str) -> Optional[MindMapNodeDB]:
+        """更新指定节点内容。"""
+        try:
+            db = await self._ensure_session()
+            query = select(MindMapNodeDB).where(
+                and_(
+                    MindMapNodeDB.id == node_id,
+                    MindMapNodeDB.deleted == False
+                )
+            )
+            result = await db.execute(query)
+            node = result.scalar_one_or_none()
+            if node is None:
+                return None
+
+            node.content = content
+            node.updated_time = int(time.time())
+            await db.commit()
+            await db.refresh(node)
+            return node
+        finally:
+            await self._cleanup_session()
+
+    async def delete_node(self, node_id: int, delete_descendants: bool = True) -> Dict[str, List[int] | int]:
+        """软删除指定节点；默认同时删除其全部子树。"""
+        try:
+            db = await self._ensure_session()
+            query = select(MindMapNodeDB).where(
+                and_(
+                    MindMapNodeDB.id == node_id,
+                    MindMapNodeDB.deleted == False
+                )
+            )
+            result = await db.execute(query)
+            node = result.scalar_one_or_none()
+            if node is None:
+                return {"deleted_count": 0, "deleted_node_ids": []}
+
+            if node.parent_id is None:
+                raise ValueError("根节点不允许删除")
+
+            node_ids_to_delete = [node.id]
+            if delete_descendants:
+                subtree_query = select(MindMapNodeDB).where(
+                    and_(
+                        MindMapNodeDB.mind_map_id == node.mind_map_id,
+                        MindMapNodeDB.deleted == False
+                    )
+                )
+                subtree_result = await db.execute(subtree_query)
+                nodes = subtree_result.scalars().all()
+
+                children_by_parent: Dict[int, List[int]] = {}
+                for item in nodes:
+                    if item.parent_id is not None:
+                        children_by_parent.setdefault(item.parent_id, []).append(item.id)
+
+                stack = [node.id]
+                seen = {node.id}
+                while stack:
+                    current_id = stack.pop()
+                    for child_id in children_by_parent.get(current_id, []):
+                        if child_id not in seen:
+                            seen.add(child_id)
+                            node_ids_to_delete.append(child_id)
+                            stack.append(child_id)
+
+            current_time = int(time.time())
+            stmt = update(MindMapNodeDB).where(
+                MindMapNodeDB.id.in_(node_ids_to_delete),
+                MindMapNodeDB.deleted == False
+            ).values(
+                deleted=True,
+                updated_time=current_time
+            )
+            await db.execute(stmt)
+            await db.commit()
+
+            return {
+                "deleted_count": len(node_ids_to_delete),
+                "deleted_node_ids": node_ids_to_delete,
+            }
         finally:
             await self._cleanup_session()
             

@@ -166,6 +166,58 @@ class AgentService:
             from app.services.query_rewrite_service import QueryRewriteService
             self._query_rewrite_service = QueryRewriteService()
         return self._query_rewrite_service
+
+    def _render_tools_for_prompt(self) -> str:
+        """
+        将当前可用工具渲染为适合注入提示词的文本。
+
+        对于 function/tool calling，模型本身会收到结构化 tool schema；
+        这里额外注入一份文本摘要，帮助弱模型更稳定地选择合适工具。
+        """
+        if not self.tools:
+            return "当前没有可用工具。"
+
+        rendered_tools = []
+        for tool_item in self.tools:
+            name = getattr(tool_item, "name", None) or tool_item.__class__.__name__
+            description = (getattr(tool_item, "description", "") or "").strip()
+            description = description if description else "无描述"
+
+            args_schema = getattr(tool_item, "args_schema", None)
+            arg_fields = []
+            if args_schema is not None:
+                if hasattr(args_schema, "model_fields"):
+                    arg_fields = list(args_schema.model_fields.keys())
+                elif hasattr(args_schema, "__fields__"):
+                    arg_fields = list(args_schema.__fields__.keys())
+
+            args_text = ", ".join(arg_fields) if arg_fields else "无结构化参数或参数未声明"
+            rendered_tools.append(
+                f"- 工具名: {name}\n"
+                f"  用途: {description}\n"
+                f"  参数: {args_text}"
+            )
+
+        return "当前可用工具如下：\n" + "\n".join(rendered_tools)
+
+    def _build_system_prompt_for_tool_calling(self) -> str:
+        """
+        构造 tool_calling 模式下的单条 system prompt。
+
+        tool_calling 模式要求系统提示词显式声明 {available_tools} 占位符，
+        由提示词模板决定工具列表插入位置，这里不做兜底拼接。
+        """
+        if not self.system_prompt or not self.system_prompt.strip():
+            raise ValueError(
+                "tool_calling 模式要求配置 system_prompt，且必须包含 {available_tools} 占位符"
+            )
+
+        if "{available_tools}" not in self.system_prompt:
+            raise ValueError(
+                "system_prompt 缺少 {available_tools} 占位符，请在系统提示词模板中显式声明工具列表插入位置"
+            )
+
+        return self.system_prompt
     
     async def _load_tools(self) -> List[BaseTool]:
         """
@@ -309,8 +361,7 @@ class AgentService:
         messages = []
 
         # 系统提示词
-        if self.system_prompt:
-            messages.append(("system", self.system_prompt))
+        messages.append(("system", self._build_system_prompt_for_tool_calling()))
 
         # 用户提示词模板：直接使用 function calling 风格模板
         if self.prompt_template:
@@ -357,12 +408,17 @@ class AgentService:
             message_type="user",
             content=task_content
         )
-        
-        # 执行Agent
+
+        async def _noop_callback(_data: Dict[str, Any]) -> None:
+            return
+
+        query = task_content
+        context = await self._before_generation(query, _noop_callback)
         if isinstance(input_text, dict):
-            result = await self.agent_executor.ainvoke(input_text)
-        else:
-            result = await self.agent_executor.ainvoke({"input": input_text})
+            context.update(input_text)
+
+        # 执行Agent
+        result = await self.agent_executor.ainvoke(context)
         
         # 记录助手回复到对话历史
         if "output" in result:
@@ -386,6 +442,21 @@ class AgentService:
             user_message_id=0,  # 需要提供一个有效的用户消息ID
             content=thinking
         )
+
+    async def aclose(self) -> None:
+        """显式关闭 Agent 持有的仓库会话，避免连接滞留到 GC 阶段。"""
+        repo_names = [
+            "conversation_repo",
+            "thinking_repo",
+            "document_repo",
+            "file_repo",
+            "project_repo",
+        ]
+        for repo_name in repo_names:
+            repo = getattr(self, repo_name, None)
+            close_method = getattr(repo, "close", None)
+            if close_method is not None:
+                await close_method()
     
     async def get_conversation_history(self, limit: int = 10) -> List[Dict[str, Any]]:
         """
@@ -522,7 +593,8 @@ class AgentService:
             "project_id": self.project_id,
             "project_name": project_name,
             "project_description": project_description,
-            "context": json.dumps(self.context)
+            "context": json.dumps(self.context),
+            "available_tools": self._render_tools_for_prompt(),
         }
     
     async def _handle_chain_end(self, event: Dict, callback: Callable, project_id: int, query: str) -> bool:

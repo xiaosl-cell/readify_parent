@@ -1,10 +1,9 @@
-# 标准库导入
 import asyncio
 import logging
 import os
+import time
 from typing import Any, Dict
 
-# 第三方库导入
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
 
@@ -22,12 +21,28 @@ except Exception:  # pragma: no cover - nacos-sdk not installed
 
 logger = logging.getLogger(__name__)
 
-# Load .env early so NACOS_* flags are visible before Settings instantiation
+# Load .env before Settings is instantiated so NACOS_* flags are available.
 load_dotenv()
 
 
+def _default_embedding_api_key() -> str:
+    explicit_key = os.getenv("EMBEDDING_API_KEY", "")
+    if explicit_key:
+        return explicit_key
+
+    hunyuan_key = os.getenv("HUNYUAN_API_KEY", "")
+    if hunyuan_key:
+        return hunyuan_key
+
+    llm_base = os.getenv("LLM_API_BASE", "")
+    if "hunyuan.cloud.tencent.com" in llm_base:
+        return os.getenv("LLM_API_KEY", "")
+
+    return ""
+
+
 def _load_nacos_config() -> Dict[str, Any]:
-    """Optionally pull configuration from Nacos Config and return as dict."""
+    """Optionally pull configuration from Nacos Config and return it as a dict."""
     enabled = os.getenv("NACOS_ENABLED", "false").lower() == "true"
     data_id = os.getenv("NACOS_CONFIG_DATA_ID", "").strip()
     group = os.getenv("NACOS_GROUP", "DEFAULT_GROUP")
@@ -39,7 +54,7 @@ def _load_nacos_config() -> Dict[str, Any]:
     if not enabled or not data_id:
         return {}
     if yaml is None or NacosConfigService is None or ClientConfig is None or ConfigParam is None:
-        logger.warning("Nacos config not loaded (missing nacos-sdk-python or PyYAML)")
+        logger.warning("Nacos config not loaded because nacos-sdk-python or PyYAML is missing")
         return {}
 
     async def _pull() -> Dict[str, Any]:
@@ -67,21 +82,29 @@ def _load_nacos_config() -> Dict[str, Any]:
                 return result
             logger.warning("Nacos config %s/%s returned empty, attempt %d/3", group, data_id, attempt)
         except Exception as exc:  # pragma: no cover
-            logger.warning("Failed to fetch Nacos config %s/%s (attempt %d/3): %s", group, data_id, attempt, exc)
+            logger.warning(
+                "Failed to fetch Nacos config %s/%s (attempt %d/3): %s",
+                group,
+                data_id,
+                attempt,
+                exc,
+            )
         if attempt < 3:
-            import time
             time.sleep(2)
+
     logger.error("All 3 attempts to fetch Nacos config %s/%s failed", group, data_id)
     return {}
 
 
 class Settings(BaseSettings):
-    """应用配置"""
+    """Application settings."""
+
     DB_HOST: str
     DB_PORT: int
     DB_USER: str
     DB_PASSWORD: str
     DB_NAME: str
+
     # Milvus settings
     MILVUS_HOST: str = os.getenv("MILVUS_HOST", "localhost")
     MILVUS_PORT: int = int(os.getenv("MILVUS_PORT", "19530"))
@@ -89,7 +112,7 @@ class Settings(BaseSettings):
     MILVUS_PASSWORD: str = os.getenv("MILVUS_PASSWORD", "")
     MILVUS_DB_NAME: str = os.getenv("MILVUS_DB_NAME", "default")
 
-    # LlamaParse配置
+    # LlamaParse settings
     LLAMA_PARSE_API_KEY: str = os.getenv("LLAMA_PARSE_API_KEY", "")
 
     # Parser / OCR settings
@@ -97,23 +120,30 @@ class Settings(BaseSettings):
     OCR_BASE_URL: str = os.getenv("OCR_BASE_URL", "http://localhost:8090")
     OCR_LANG: str = os.getenv("OCR_LANG", "ch")
     OCR_TIMEOUT_SEC: int = int(os.getenv("OCR_TIMEOUT_SEC", "120"))
+    TENCENT_SECRET_ID: str = os.getenv("TENCENT_SECRET_ID", "")
+    TENCENT_SECRET_KEY: str = os.getenv("TENCENT_SECRET_KEY", "")
+    TENCENT_OCR_REGION: str = os.getenv("TENCENT_OCR_REGION", "ap-guangzhou")
 
-    # LLM配置 - 统一的模型配置
-    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "openai")  # "openai" | "anthropic"
+    # LLM settings
+    LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "openai")
     LLM_API_KEY: str = os.getenv("LLM_API_KEY", "")
     LLM_API_BASE: str = os.getenv("LLM_API_BASE", "https://api.openai.com/v1")
     LLM_MODEL_NAME: str = os.getenv("LLM_MODEL_NAME", "gpt-4o")
-    # 自定义 HTTP 请求头，JSON 格式，用于绕过 WAF 等场景
-    # 示例: '{"User-Agent": "Mozilla/5.0 ...", "X-Custom": "value"}'
     LLM_DEFAULT_HEADERS: str = os.getenv("LLM_DEFAULT_HEADERS", "")
 
-    # 查询改写配置
+    # Query rewrite settings
     QUERY_REWRITE_ENABLED: bool = os.getenv("QUERY_REWRITE_ENABLED", "true").lower() == "true"
 
-    # Embedding模型配置
-    EMBEDDING_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-    EMBEDDING_API_BASE: str = os.getenv("OPENAI_API_BASE", "https://api.openai.com/v1")
-    EMBEDDING_MODEL: str = "text-embedding-3-small"
+    # Embedding settings. Default to Tencent Hunyuan's OpenAI-compatible embeddings endpoint.
+    EMBEDDING_API_KEY: str = _default_embedding_api_key()
+    EMBEDDING_API_BASE: str = os.getenv(
+        "EMBEDDING_API_BASE",
+        os.getenv("HUNYUAN_API_BASE", "https://api.hunyuan.cloud.tencent.com/v1"),
+    )
+    EMBEDDING_MODEL: str = os.getenv("EMBEDDING_MODEL", "hunyuan-embedding")
+    EMBEDDING_REQUEST_BATCH_SIZE: int = int(os.getenv("EMBEDDING_REQUEST_BATCH_SIZE", "50"))
+    EMBEDDING_COLLECTION_NAME: str = os.getenv("EMBEDDING_COLLECTION_NAME", "rf_documents")
+
     FILE_PROCESS_CALLBACK_URL: str = os.getenv("FILE_PROCESS_CALLBACK_URL", "")
     FILE_PROCESS_CALLBACK_API_KEY: str = os.getenv("FILE_PROCESS_CALLBACK_API_KEY", "")
 
@@ -123,7 +153,7 @@ class Settings(BaseSettings):
     MINIO_SECRET_KEY: str = os.getenv("MINIO_SECRET_KEY", "")
     MINIO_SECURE: bool = os.getenv("MINIO_SECURE", "false").lower() == "true"
 
-    # SerpAPI配置
+    # SerpAPI settings
     SERPAPI_API_KEY: str = os.getenv("SERPAPI_API_KEY", "")
 
     # Service settings
@@ -142,7 +172,7 @@ class Settings(BaseSettings):
     NACOS_HEARTBEAT_INTERVAL: int = int(os.getenv("NACOS_HEARTBEAT_INTERVAL", "5"))
     NACOS_CONFIG_DATA_ID: str = os.getenv("NACOS_CONFIG_DATA_ID", "")
 
-    # 服务发现配置
+    # Service discovery
     READIFY_SERVER_SERVICE_NAME: str = os.getenv("READIFY_SERVER_SERVICE_NAME", "")
     READIFY_EVAL_SERVICE_NAME: str = os.getenv("READIFY_EVAL_SERVICE_NAME", "readify-eval")
     READIFY_EVAL_BASE_URL: str = os.getenv("READIFY_EVAL_BASE_URL", "")
@@ -160,19 +190,20 @@ class Settings(BaseSettings):
         env_file = ".env"
         case_sensitive = True
 
+
 _nacos_enabled = os.getenv("NACOS_ENABLED", "false").lower() == "true"
 _nacos_config = _load_nacos_config() if _nacos_enabled else {}
+
 if _nacos_enabled:
     if not _nacos_config:
         raise RuntimeError(
-            "NACOS_ENABLED=true 但未能从 Nacos 拉取到配置，请检查 "
-            "NACOS_CONFIG_DATA_ID、NACOS_GROUP、NACOS_NAMESPACE、"
-            "NACOS_USERNAME、NACOS_PASSWORD 等环境变量或 Nacos 配置是否正确"
+            "NACOS_ENABLED=true but no config was loaded from Nacos. Check "
+            "NACOS_CONFIG_DATA_ID, NACOS_GROUP, NACOS_NAMESPACE, "
+            "NACOS_USERNAME, NACOS_PASSWORD, and the remote Nacos config."
         )
-    # 兼容 Nacos 中将某些字段配置为 null 的情况（例如 MILVUS_USER / MILVUS_PASSWORD）
-    for _key in ("MILVUS_USER", "MILVUS_PASSWORD"):
-        if _key in _nacos_config and _nacos_config[_key] is None:
-            _nacos_config[_key] = ""
+    for key in ("MILVUS_USER", "MILVUS_PASSWORD"):
+        if key in _nacos_config and _nacos_config[key] is None:
+            _nacos_config[key] = ""
     settings = Settings(**_nacos_config)
 else:
     settings = Settings()

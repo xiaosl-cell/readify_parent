@@ -142,6 +142,81 @@ class NoteAgentService(AgentService):
             return json.dumps(result, ensure_ascii=False, indent=2)
 
         @tool
+        async def update_mind_map_node(input_str: str) -> str:
+            """
+            更新指定思维导图节点内容。
+
+            参数:
+                input_str: 输入参数JSON字符串，格式为 {"node_id": 节点ID, "content": "新的节点内容"}
+
+            返回:
+                更新结果，JSON格式
+            """
+            params = json.loads(input_str) if isinstance(input_str, str) else input_str
+            node_id = params.get("node_id")
+            content = params.get("content")
+
+            if not node_id:
+                return json.dumps({"error": "缺少必要参数: node_id"}, ensure_ascii=False)
+            if content is None or (isinstance(content, str) and not content.strip()):
+                return json.dumps({"error": "缺少必要参数: content"}, ensure_ascii=False)
+
+            node = await self.mind_map_node_repo.get_by_id(node_id)
+            if not node:
+                return json.dumps({"error": f"找不到ID为{node_id}的节点"}, ensure_ascii=False)
+
+            old_content = node.content
+            updated_node = await self.mind_map_node_repo.update_node_content(node_id=node_id, content=content)
+            if not updated_node:
+                return json.dumps({"error": f"更新节点失败: {node_id}"}, ensure_ascii=False)
+
+            result = {
+                "success": True,
+                "node_id": updated_node.id,
+                "old_content": old_content,
+                "new_content": updated_node.content,
+            }
+            return json.dumps(result, ensure_ascii=False, indent=2)
+
+        @tool
+        async def delete_mind_map_node(input_str: str) -> str:
+            """
+            删除指定思维导图节点；默认同时删除其全部子节点。
+
+            参数:
+                input_str: 输入参数JSON字符串，格式为 {"node_id": 节点ID, "delete_descendants": true}
+
+            返回:
+                删除结果，JSON格式
+            """
+            params = json.loads(input_str) if isinstance(input_str, str) else input_str
+            node_id = params.get("node_id")
+            delete_descendants = params.get("delete_descendants", True)
+
+            if not node_id:
+                return json.dumps({"error": "缺少必要参数: node_id"}, ensure_ascii=False)
+
+            node = await self.mind_map_node_repo.get_by_id(node_id)
+            if not node:
+                return json.dumps({"error": f"找不到ID为{node_id}的节点"}, ensure_ascii=False)
+
+            try:
+                delete_result = await self.mind_map_node_repo.delete_node(
+                    node_id=node_id,
+                    delete_descendants=bool(delete_descendants),
+                )
+            except ValueError as e:
+                return json.dumps({"error": str(e)}, ensure_ascii=False)
+
+            result = {
+                "success": True,
+                "node_id": node_id,
+                "deleted_count": delete_result["deleted_count"],
+                "deleted_node_ids": delete_result["deleted_node_ids"],
+            }
+            return json.dumps(result, ensure_ascii=False, indent=2)
+
+        @tool
         async def query_file_documents(input_str: str) -> str:
             """
             查询指定文件ID的所有文档概览信息，包含文档ID和标签信息。
@@ -201,8 +276,8 @@ class NoteAgentService(AgentService):
                 "file_id": document.file_id,
                 "content": document.content,
                 "sequence": document.sequence,
-                "created_at": document.created_at.isoformat() if document.created_at else None,
-                "updated_at": document.updated_at.isoformat() if document.updated_at else None
+                "create_time": document.create_time,
+                "update_time": document.update_time,
             }
 
             return json.dumps(document_dict, ensure_ascii=False, indent=2)
@@ -210,6 +285,8 @@ class NoteAgentService(AgentService):
         tools.extend([
             query_mind_map_tree,
             batch_add_child_nodes,
+            update_mind_map_node,
+            delete_mind_map_node,
             query_file_documents,
             get_document_by_id
         ])

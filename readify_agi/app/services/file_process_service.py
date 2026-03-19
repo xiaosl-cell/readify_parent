@@ -61,9 +61,9 @@ class FileProcessService:
         additional_data = {}
 
         try:
-            async with async_session_maker():
-                file_repo = FileRepository()
-                doc_repo = DocumentRepository()
+            async with async_session_maker() as db:
+                file_repo = FileRepository(db)
+                doc_repo = DocumentRepository(db)
                 document_service = DocumentService(doc_repo, file_repo, self.parser_service)
                 file_vectorize_service = FileVectorizeService(
                     file_repo,

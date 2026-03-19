@@ -7,7 +7,7 @@ import logging
 from typing import Optional, Tuple
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate
 
 from app.core.config import settings
 from app.core.llm_factory import create_chat_model
