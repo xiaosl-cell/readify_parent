@@ -206,7 +206,7 @@ const emit = defineEmits<{
 }>()
 
 // 从父组件注入projectId
-const injectedProjectId = inject<Ref<number>>('projectId', ref(23))
+const injectedProjectId = inject<Ref<number>>('projectId', ref(0))
 
 // 添加从父组件注入WebSocket管理器
 const injectedWsManager = inject('wsManager', null)
@@ -215,7 +215,7 @@ window['__chat_injectedWsManager'] = injectedWsManager
 
 // 添加本地ref变量，用于跟踪实际使用的projectId
 const localProjectId = computed(() => {
-  const id = injectedProjectId.value || 23;
+  const id = injectedProjectId.value || 0;
   console.log('计算本地projectId:', id);
   return id;
 })
@@ -606,12 +606,6 @@ const handleWebSocketMessage = (wsMessage: any) => {
         data: wsMessage
       };
     }
-  }
-  
-  // 检查状态并重置如果需要
-  const stateFixed = checkAndFixSendingState()
-  if (stateFixed) {
-    // 状态已重置
   }
   
   // 增加标记变量，用于跟踪是否有消息处理成功
@@ -1138,13 +1132,13 @@ const loadConversationHistory = async () => {
 // 强制重新初始化和渲染对话历史
 const forceRefreshHistory = () => {
   // 检查是否已有加载的历史记录
-  if (loadedConversations && loadedConversations.length > 0) {
-    
+  if (loadedConversations.value && loadedConversations.value.length > 0) {
+
     // 保存当前的消息数
     const currentCount = messages.value.length
-    
+
     // 尝试重设历史记录
-    setConversationHistory(loadedConversations)
+    setConversationHistory(loadedConversations.value)
     
     // 检查是否有改变
     const newCount = messages.value.length
