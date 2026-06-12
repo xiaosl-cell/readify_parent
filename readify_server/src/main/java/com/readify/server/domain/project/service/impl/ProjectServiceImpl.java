@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -31,7 +32,7 @@ public class ProjectServiceImpl implements ProjectService {
     public Project updateProject(Project project, Long userId) {
         Project existingProject = getProjectById(project.getId(), userId);
         // 如果名称发生变化，需要检查新名称是否已存在
-        if (!existingProject.getName().equals(project.getName()) 
+        if (!Objects.equals(existingProject.getName(), project.getName())
             && projectRepository.existsByNameAndUserId(project.getName(), userId)) {
             throw new BusinessException("工程名称已存在");
         }
