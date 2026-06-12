@@ -86,6 +86,22 @@ class FileRepository(BaseRepository):
         finally:
             await self._cleanup_session()
             
+    async def get_vectorized_file_ids(self, file_ids: List[int]) -> List[int]:
+        """批量获取已向量化的文件ID"""
+        try:
+            db = await self._ensure_session()
+            query = select(FileDB.id).where(
+                and_(
+                    FileDB.id.in_(file_ids),
+                    FileDB.vectorized == True,
+                    FileDB.deleted == False
+                )
+            )
+            result = await db.execute(query)
+            return list(result.scalars().all())
+        finally:
+            await self._cleanup_session()
+
     async def update_vectorized_status(self, file_id: int, vectorized: bool = True) -> bool:
         """更新文件向量化状态"""
         try:

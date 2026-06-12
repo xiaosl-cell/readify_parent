@@ -77,12 +77,7 @@ class FileService:
         if not file_ids:
             return []
 
-        # 获取已向量化的文件ID列表
-        vectorized_file_ids = []
-        for file_id in file_ids:
-            file = await self.file_repository.get_file_by_id(file_id)
-            if file and file.vectorized:
-                vectorized_file_ids.append(file_id)
+        vectorized_file_ids = await self.file_repository.get_vectorized_file_ids(file_ids)
 
         if not vectorized_file_ids:
             return []

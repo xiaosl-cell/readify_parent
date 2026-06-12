@@ -30,6 +30,8 @@ class DocumentService:
         self.file_repository = file_repository
         self.parser_service = parser_service
         self.object_storage_service = ObjectStorageService()
+        self._label_model = None
+        self._label_prompt: ChatPromptTemplate | None = None
 
     async def parse_and_save(self, file_id: int) -> None:
         """
@@ -180,16 +182,19 @@ class DocumentService:
             str: 生成的标签
         """
         from app.core.prompt_template_client import get_prompt_client
-        client = get_prompt_client()
-        prompt_template = (await client.get_template("label")).strip()
-
-        try:
-            chat = create_chat_model(temperature=0.5)
-
-            prompt = ChatPromptTemplate.from_messages([
+        if self._label_model is None:
+            self._label_model = create_chat_model(temperature=0.5)
+        if self._label_prompt is None:
+            client = get_prompt_client()
+            prompt_template = (await client.get_template("label")).strip()
+            self._label_prompt = ChatPromptTemplate.from_messages([
                 ("system", "你是一个文本标签生成助手，请生成简短的标签来概括文本内容。"),
                 ("human", prompt_template)
             ])
+
+        try:
+            chat = self._label_model
+            prompt = self._label_prompt
 
             chain = prompt | chat
             response = await chain.ainvoke({"content": content})
